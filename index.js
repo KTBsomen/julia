@@ -335,6 +335,15 @@ res.status(200).json(data)
 
 })
 
+//=========================
+app.get("/user/all/location",async(req,res)=>{
+
+const data=await location.find()
+console.log(data)
+res.status(200).json(data)
+
+})
+
 //=======================
 app.get("/user/all/subcategory/:category",async(req,res)=>{
 
