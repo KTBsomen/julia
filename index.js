@@ -456,8 +456,8 @@ res.status(200).json(data)
 })
 //=======================
 
-app.post("/user/write/review", authenticateUserToken ,async(req,res)=>{
-if(req.user.user_id != req.body.user_id) return res.status(403).json({Error:"not the same user loged in"})
+app.post("/user/write/review" ,async(req,res)=>{
+//if(req.user.user_id != req.body.user_id) return res.status(403).json({Error:"not the same user loged in"})
 
 const dataToBeUploaded=new reviews(req.body)
 try{
@@ -479,6 +479,58 @@ res.status(200).json(data)
 })
 
 //=======================
+
+app.post("/user/related/ads", async(req,res)=>{
+
+const data=await post.find({
+  post_location :req.body.location,
+  post_category:req.body.category,
+  post_subcategory:req.body.subcategory,
+  post_price:{$gte: req.body.minval, $lte: req.body.maxval}
+})
+console.log(data)
+res.status(200).json(data)
+
+})
+
+//======================
+app.post("/user/mark/sold", authenticateUserToken ,async (req,res)=>{
+if(req.user.user_id != req.body.user_id) return res.status(403).json({Error:"not the same user loged in"})
+try{
+ const updated=await post.findByIdAndUpdate(req.body.post_id, {post_sold:1})
+res.status(200).json({"Marked as sold":updated})
+}catch(err){res.status(405).json({Error:err.message})}
+
+})
+
+
+//======================
+
+app.post("/user/editpost/", authenticateUserToken ,async (req,res)=>{
+if(req.user.user_id != req.body.post_user_id) return res.status(403).json({Error:"not the same user loged in"})
+try{
+ const updated=await post.findByIdAndUpdate(req.body._id,req.body)
+res.status(200).json({"post edited sucessfully":updated})
+}catch(err){res.status(405).json({Error:err.message})}
+
+})
+
+//======================
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
