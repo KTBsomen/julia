@@ -403,7 +403,16 @@ try{
 
 
 })
+//===========================
+app.get("/user/my/wishlist",authenticateUserToken,async(req,res)=>{
+if(req.user.user_id != req.body.user_id) return res.status(403).json({Error:"not the same user loged in"})
 
+
+const data=await wishlist.find({wish_user_id:req.body.user_id})
+console.log(data)
+res.status(200).json(data)
+
+})
 
 //===========================
 app.post("/user/create/new/ad",authenticateUserToken,async(req,res)=>{
