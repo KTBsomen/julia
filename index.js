@@ -258,15 +258,15 @@ app.get("/adminlogin/:admin_id",(req,res)=>{
 
 //fetured ad section========
 
-app.get("/user/fetured/ads/category/:category",async()=>{
+// app.get("/user/fetured/ads/category/:category",async()=>{
 
-const data=await post_category.find({post_category:req.params.category,post_featured:1})
-console.log(data+"   "+req.params.email)
-res.status(200).json(data)
+// const data=await post_category.find({post_category:req.params.category,post_featured:1})
+// console.log(data+"   "+req.params.email)
+// res.status(200).json(data)
 
 
 
-})
+// })
 
 //========================================
 
@@ -388,7 +388,37 @@ res.status(200).json(data)
 
 })
 //==========================
+app.post("/user/add/to/wishlist",authenticateUserToken,async(req,res)=>{
+if(req.user.user_id != req.body.wish_user_id) return res.status(403).json({Error:"not the same user loged in"})
 
+const dataToBeUploaded=new wishlist(req.body)
+try{
+
+  const saved_data=await dataToBeUploaded.save()
+  res.status(200).json(saved_data)
+
+}catch(err){
+  res.status(400).json({error:err.message})
+}
+
+
+})
+
+
+//===========================
+app.post("/user/create/new/ad",authenticateUserToken,async(req,res)=>{
+
+if(req.user.user_id != req.body.post_user_id) return res.status(403).json({Error:"not the same user loged in"})
+
+const dataToBeUploaded=new post(req.body)
+try{
+  const saved_data=await dataToBeUploaded.save()
+  res.status(200).json(saved_data)
+}catch(err){
+  res.status(400).json({error:err.message})
+}
+
+})
 
 
 
