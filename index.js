@@ -118,7 +118,7 @@ post_featured:{type:Number,default:0},
 post_location:{type:String,required:true},
 fields:{type:String},
 boost_id:{type:String},
-port_title:{type:String,required:true},
+post_title:{type:String,required:true},
 post_image:[{type: String,required:true}],
 post_sold:{type:String,default:0},
 post_price:{type:String,required:true},
@@ -191,6 +191,14 @@ const field_infoSH = mongoose.Schema(
   field_info_data:{type:String,required:true},
   })
 
+const reviewsSH = mongoose.Schema(
+{
+  post_id :{type:String,required:true},
+  star_rating:{type:Number,max:5,required:true},
+  review:{type:String,required:true},
+  user_id:{type:String,required:true},
+  review_time:{type:Date,default:Date.now},
+  })
 //===========DATABASEMODEL===
 //const Ticket=mongoose.model("Ticket",ticketschema);
 const message=mongoose.model("message",messageSH);
@@ -206,6 +214,7 @@ const users=mongoose.model("users",usersSH);
 const user_info=mongoose.model("user_info",user_infoSH);
 const wishlist=mongoose.model("wishlist",wishlistSH);
 const admin=mongoose.model("admin",adminSH);
+const reviews=mongoose.model("reviews",reviewsSH);
 
 //const nMessage=mongoose.model("nMessage",normalMessage);
 //===========================
@@ -304,6 +313,15 @@ try{
  const updated=await user_info.findByIdAndUpdate(req.params.user_id, {user_image:req.body.user_image})
 res.status(200).json({"close_ticket_success":updated})
 }catch(err){res.status(405).json({Error:err.message})}
+
+})
+//=========================
+
+app.get("/user/all/ads",async(req,res)=>{
+
+const data=await post.find()
+console.log(data)
+res.status(200).json(data)
 
 })
 
@@ -415,7 +433,7 @@ res.status(200).json(data)
 })
 
 //===========================
-app.post("/user/create/new/ad",authenticateUserToken,async(req,res)=>{
+app.post("/user/create/new/ad",authenticateUserToken ,async(req,res)=>{
 
 if(req.user.user_id != req.body.post_user_id) return res.status(403).json({Error:"not the same user loged in"})
 
@@ -429,7 +447,38 @@ try{
 
 })
 
+//========================
+app.get("/user/search/product/title/:title",async (req,res)=>{
+const data=await post.find({post_title: new RegExp(req.params.title,'i')})
 
+res.status(200).json(data)
+
+})
+//=======================
+
+app.post("/user/write/review", authenticateUserToken ,async(req,res)=>{
+if(req.user.user_id != req.body.user_id) return res.status(403).json({Error:"not the same user loged in"})
+
+const dataToBeUploaded=new reviews(req.body)
+try{
+  const saved_data=await dataToBeUploaded.save()
+  res.status(200).json(saved_data)
+}catch(err){
+  res.status(400).json({error:err.message})
+}
+
+
+})
+//=======================
+
+app.get("/user/read/review/:post_id",async (req,res)=>{
+const data=await reviews.find({post_id: req.params.post_id})
+
+res.status(200).json(data)
+
+})
+
+//=======================
 
 
 
