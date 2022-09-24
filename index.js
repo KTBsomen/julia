@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const bodyparser = require('body-parser');
 const jwt = require('jsonwebtoken');
 const cors= require("cors");
+const axios = require('axios').default;
 require("dotenv").config();
 const app = express();
 app.use(bodyparser.json());
@@ -134,6 +135,19 @@ reciver_id:{type:String,required:true},
 time:{type:Date,default:Date.now},
 
 })
+
+const packegeSH = mongoose.Schema(
+{
+plan_name:{type:String,required:true},
+duration:{type:Number,required:true},
+disprice:{type:String,required:true},
+post_available:{type:Number,required:true},
+regprice:{type:String,required:true},
+
+
+})
+
+
 const locationSH = mongoose.Schema(
 {
 location_name:{type:String,required:true},
@@ -199,6 +213,16 @@ const reviewsSH = mongoose.Schema(
   user_id:{type:String,required:true},
   review_time:{type:Date,default:Date.now},
   })
+
+const plan_purchaseSH = mongoose.Schema(
+{
+  plan_id :[{type:String,required:true}],
+  user_id:{type:String,required:true},
+  post_available:{type:Number,required:true},
+  end_date:{type:Date,required:true},
+  purchase_date:{type:Date,default:Date.now},
+  })
+
 //===========DATABASEMODEL===
 //const Ticket=mongoose.model("Ticket",ticketschema);
 const message=mongoose.model("message",messageSH);
@@ -215,6 +239,8 @@ const user_info=mongoose.model("user_info",user_infoSH);
 const wishlist=mongoose.model("wishlist",wishlistSH);
 const admin=mongoose.model("admin",adminSH);
 const reviews=mongoose.model("reviews",reviewsSH);
+const packege=mongoose.model("packege",packegeSH);
+const plan_purchase=mongoose.model("plan_purchase",plan_purchaseSH);
 
 //const nMessage=mongoose.model("nMessage",normalMessage);
 //===========================
@@ -292,8 +318,76 @@ try{
 }
 
 })
+//========================================
 
 
+app.post("/admin/new/plan",async(req,res)=>{
+//if(req.user.user_id != req.body.admin_id) return res.status(403).json({Error:"not the same user loged in"})
+//1 day = 1 * 24 * 60 * 60000 = 1 x 24 hours x 60 minutes x 60 seconds x 1000 milliseconds
+
+const dataToBeUploaded=new packege({
+regprice:req.body.regprice,
+disprice:req.body.disprice,
+plan_name:req.body.plan_name,
+post_available:req.body.post_available,
+duration:parseInt(req.body.duration)* 24 * 60 * 60000
+})
+try{
+  const saved_data=await dataToBeUploaded.save()
+  res.status(200).json(saved_data)
+}catch(err){
+  res.status(400).json({error:err.message})
+}
+
+})
+//=============================
+app.get("/user/plan/:plan_id",async(req,res)=>{
+
+const data=await packege.find({_id:req.params.plan_id})
+console.log(data)
+res.status(200).json(data)
+
+})
+
+//=============================
+app.post("/user/purchase/packege",async(req,res)=>{
+//if(req.user.user_id != req.body.admin_id) return res.status(403).json({Error:"not the same user loged in"})
+//1 day = 1 * 24 * 60 * 60000 = 1 x 24 hours x 60 minutes x 60 seconds x 1000 milliseconds
+var packegeList=req.body.packeges;
+var total_post_available=0;
+var end_date_total=Date.now();
+for (var i = packegeList.length - 1; i >= 0; i--) {
+ httpdata=await axios("http://localhost:3000/user/plan/"+packegeList[i])
+ total_post_available+=parseInt(httpdata.data[0].post_available); 
+ end_date_total+=parseInt(httpdata.data[0].duration);
+}
+
+// res.send(`total post available: ${total_post_available}  end date total ${new Date(end_date_total)>Date.now()}`)
+
+const dataToBeUploaded=new plan_purchase({
+user_id:req.body.user_id,
+plan_id:packegeList,
+post_available:total_post_available,
+end_date:end_date_total
+})
+try{
+  const saved_data=await dataToBeUploaded.save()
+  res.status(200).json(saved_data)
+}catch(err){
+  res.status(400).json({error:err.message})
+}
+
+})
+
+//=========================
+
+app.get("/user/all/plans",async(req,res)=>{
+
+const data=await packege.find()
+console.log(data)
+res.status(200).json(data)
+
+})
 //==================
 
 app.post("/user/editprofile/:user_id", authenticateUserToken ,async (req,res)=>{
@@ -440,16 +534,56 @@ console.log(data)
 res.status(200).json(data)
 
 })
+//===========================
+
+app.get("/user/is/pro/:user_id", async(req,res)=>{
+
+const data=await plan_purchase.find({
+  user_id :req.params.user_id,
+  post_available:{$gt: 0},
+  end_date:{$gte: Date.now()},
+  
+})
+console.log(data)
+res.status(200).json(data)
+
+})
+
+
+// axios.post('/user', {
+//     user_id: 'Fred',
+//     lastName: 'Flintstone'
+//   })
+
+
 
 //===========================
-app.post("/user/create/new/ad",authenticateUserToken ,async(req,res)=>{
+app.post("/user/create/new/ad" ,async(req,res)=>{
+//if(req.user.user_id != req.body.post_user_id) return res.status(403).json({Error:"not the same user loged in"})
+var checking_PL_ED=await axios("http://localhost:3000/user/is/pro/"+req.body.user_id)
+var fetured=0
+if (checking_PL_ED){
+  var fetured=1
+}
 
-if(req.user.user_id != req.body.post_user_id) return res.status(403).json({Error:"not the same user loged in"})
 
-const dataToBeUploaded=new post(req.body)
+const dataToBeUploaded=new post({
+post_category:req.body.category,
+post_subcategory:req.body.subcategory,
+post_user_id:req.body.user_id,
+post_featured:fetured,
+post_location:req.body.location,
+post_title:req.body.title,
+post_image:req.body.images,
+post_price:req.body.price,
+post_description:req.body.description,
+auth_name:req.body.name,
+
+})
 try{
-  const saved_data=await dataToBeUploaded.save()
-  res.status(200).json(saved_data)
+const saved_data=await dataToBeUploaded.save()
+const updated=await plan_purchase.findOneAndUpdate(req.body.user_id, {$inc: {post_available: -1}})
+res.status(200).json({"post uploaded":saved_data})
 }catch(err){
   res.status(400).json({error:err.message})
 }
