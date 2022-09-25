@@ -10,7 +10,6 @@ app.use(bodyparser.json());
 app.use(cors());
 //---------MIDDLEWARE
 
-
 //---------------------
 
 //---------------AUTHENTICATION_PROCESS----------------
@@ -223,6 +222,13 @@ const plan_purchaseSH = mongoose.Schema(
   purchase_date:{type:Date,default:Date.now},
   })
 
+const extrafieldSH = mongoose.Schema(
+{
+  subcategory_id :{type:String,required:true},
+  schema:{type:Object,required:true},
+  })
+
+
 //===========DATABASEMODEL===
 //const Ticket=mongoose.model("Ticket",ticketschema);
 const message=mongoose.model("message",messageSH);
@@ -241,6 +247,7 @@ const admin=mongoose.model("admin",adminSH);
 const reviews=mongoose.model("reviews",reviewsSH);
 const packege=mongoose.model("packege",packegeSH);
 const plan_purchase=mongoose.model("plan_purchase",plan_purchaseSH);
+const extrafield=mongoose.model("extrafield",extrafieldSH);
 
 //const nMessage=mongoose.model("nMessage",normalMessage);
 //===========================
@@ -340,6 +347,96 @@ try{
 }
 
 })
+//========================================
+
+
+app.post("/admin/add/extra/field",async(req,res)=>{
+//if(req.user.user_id != req.body.admin_id) return res.status(403).json({Error:"not the same user loged in"})
+//1 day = 1 * 24 * 60 * 60000 = 1 x 24 hours x 60 minutes x 60 seconds x 1000 milliseconds
+try {(!JSON.parse(req.body.schema)) }
+catch(err){return res.status(400).json({error:"json not formated correctly "+err.message})}
+const dataToBeUploaded=new extrafield({
+subcategory_id:req.body.subcategory_id,
+schema:JSON.parse(req.body.schema)
+})
+try{
+  const saved_data=await dataToBeUploaded.save()
+  res.status(200).json(saved_data)
+}catch(err){
+  res.status(400).json({error:err.message})
+}
+
+})
+//=============================
+app.get("/user/extra/field/:subcategory_id",async(req,res)=>{
+var formhtml='';
+const data=await extrafield.find({subcategory_id:req.params.subcategory_id})
+for (var i = data.length - 1; i >= 0; i--) {
+try{
+    if(typeof(data[i].schema)=="object"){
+  
+  console.log(` ${Object.keys(data[i].schema)}`)
+  switch(parseInt(data[i].schema.fieldtype)){
+
+case 5:
+  console.log("date")
+  break;
+
+case 4:
+    console.log("dropdown")//onchange="document.getElementById("dynamic-dropdown").value="this.options[this.selectedIndex].value&quot;
+    var arr=data[i].schema.fielddata.replace("[",'').replace("]",'').split(",")
+    var options="";
+    for (var k = arr.length - 1; k >= 0; k--) {
+      options+=`<option value="${arr[k]}">${arr[k]}</option>`
+
+    }
+    formhtml+=(`
+    <div class="col-xl-6 col-lg-6 col-md-6 col-12">
+   
+    <lable class="my-2 "><b>${data[i].schema.field}</b></lable>
+     <select name="${data[i].schema.field}" class="form-control" required="" >
+     ${options}
+</select>  
+          </div>
+
+    `)
+
+
+  break;
+
+
+case 3:
+console.log("redio")
+  break;
+
+case 2:
+console.log("checkbox")
+  break;
+
+
+case 1:
+console.log("text or number")
+  break;
+
+
+
+
+  }
+
+
+      }
+
+
+
+
+}catch(err){console.log(err.message)}
+
+
+}
+res.status(200).send(formhtml)
+
+})
+
 //=============================
 app.get("/user/plan/:plan_id",async(req,res)=>{
 
@@ -700,7 +797,7 @@ res.status(200).json({"post edited sucessfully":updated})
 
 // //===================== use this endpoint when trying to get all the tickets for a perticular user by user_id as a parameter.
 // app.get("/ticket/:user_id", authenticateUserToken, async(req,res)=>{
-// 	if(req.user.user_id != req.params.user_id) return res.status(403).json({Error:"not the same user loged in"})
+//  if(req.user.user_id != req.params.user_id) return res.status(403).json({Error:"not the same user loged in"})
 // try{
 //   console.log(req.params.user_id)
 //   const data= await Ticket.find({user_id:req.params.user_id}).sort({createdAt:-1})
@@ -740,7 +837,7 @@ res.status(200).json({"post edited sucessfully":updated})
 // app.post("/close_ticket/:ticket_id", authenticateUserToken ,async (req,res)=>{
 // if(req.user.user_id != req.params.user_id) return res.status(403).json({Error:"not the same user loged in"})
 // try{
-// 	const updated=await Ticket.findByIdAndUpdate(req.params.ticket_id, { isclosed: 1,closedate:Date.now() })
+//  const updated=await Ticket.findByIdAndUpdate(req.params.ticket_id, { isclosed: 1,closedate:Date.now() })
 // res.status(200).json({"close_ticket_success":updated})
 // }catch(err){res.status(405).json({Error:err.message})}
 
@@ -751,7 +848,7 @@ res.status(200).json({"post edited sucessfully":updated})
 // app.post("/update_status/:ticket_id",authenticateOparetorToken,async (req,res)=>{
 // if(req.user.user_id != req.body.oparetor_id) return res.status(403).json({Error:"not the same oparetor logged in"})
 // try{
-// 	const updated=await Ticket.findByIdAndUpdate(req.params.ticket_id, { status: req.body.status});
+//  const updated=await Ticket.findByIdAndUpdate(req.params.ticket_id, { status: req.body.status});
 // res.status(200).json({"status_update_success":updated})
 // }catch(err){res.status(405).json({Error:err.message})}
 
@@ -809,7 +906,7 @@ res.status(200).json({"post edited sucessfully":updated})
 // app.post("/update_status/:ticket_id",authenticateAdminToken,async (req,res)=>{
 // if(req.user.user_id != req.body.admin_id) return res.status(403).json({Error:"not the same admin logged in"})
 // try{
-// 	const updated=await Ticket.findByIdAndUpdate(req.params.ticket_id, { status: req.body.status});
+//  const updated=await Ticket.findByIdAndUpdate(req.params.ticket_id, { status: req.body.status});
 // res.status(200).json({"status_update_success":updated})
 // }catch(err){res.status(405).json({Error:err.message})}
 
