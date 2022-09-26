@@ -10,6 +10,26 @@ app.use(bodyparser.json());
 app.use(cors());
 //---------MIDDLEWARE
 
+
+/** we dont need it here in api bu need it on the client side.
+ * Creates a json object including fields in the form
+ *
+ * @param {HTMLElement} form The form element to convert
+ * @return {Object} The form data
+ */
+const Form2JSON = (form) => {
+  const data = new FormData(form);
+  return Array.from(data.keys()).reduce((result, key) => {
+    if (result[key]) {
+      result[key] = data.getAll(key)
+      return result
+    }
+    result[key] = data.get(key);
+    return result;
+  }, {});
+};
+
+
 //---------------------
 
 //---------------AUTHENTICATION_PROCESS----------------
@@ -380,6 +400,10 @@ try{
 
 case 5:
   console.log("date")
+  formhtml+=`<div class="">
+            <label for="" class="form-label"> ${data[i].schema.field} </label>
+            <input id="dynamic-${data[i].schema.field}" type="date" name="${data[i].schema.field}" value="" class="form-control" required="" placeholder="voer hier de advertentietitel in">
+          </div>`
   break;
 
 case 4:
@@ -407,15 +431,56 @@ case 4:
 
 case 3:
 console.log("redio")
+  var arr=data[i].schema.fielddata.replace("[",'').replace("]",'').split(",")
+    var options="";
+    for (var k = arr.length - 1; k >= 0; k--) {
+      options+=`<input type="radio" name="${data[i].schema.field}" class="" required="" value="${arr[k]}">${arr[k]}&nbsp;&nbsp;`
+
+    }
+    formhtml+=(`
+    <div class="col-xl-6 col-lg-6 col-md-6 col-12">
+   
+    <lable class="my-2 " style="display: block;"><b>${data[i].schema.field}</b></lable>
+     
+     ${options}
+ 
+          </div>
+
+    `)
+
+
   break;
 
 case 2:
 console.log("checkbox")
+var arr=data[i].schema.fielddata.replace("[",'').replace("]",'').split(",")
+    var options="";
+    for (var k = arr.length - 1; k >= 0; k--) {
+      options+=`<input type="checkbox" name="${data[i].schema.field}" class="" required="" value="${arr[k]}">${arr[k]}&nbsp;&nbsp;`
+
+    }
+    formhtml+=(`
+    <div class="col-xl-6 col-lg-6 col-md-6 col-12">
+   
+    <lable class="my-2 " style="display: block;"><b>${data[i].schema.field}</b></lable>
+     
+     ${options}
+ 
+          </div>
+
+    `)
+
+
+
   break;
 
 
 case 1:
 console.log("text or number")
+formhtml+=`<div class="">
+            <label for="" class="form-label"> ${data[i].schema.field} </label>
+            <input id="dynamic-${data[i].schema.field}" type="text" name="${data[i].schema.field}" value="" class="form-control" required="" placeholder="voer hier de advertentietitel in">
+          </div>`
   break;
 
 
