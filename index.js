@@ -368,6 +368,42 @@ try{
 
 })
 //========================================
+app.post("/admin/new/category",async(req,res)=>{
+//if(req.user.user_id != req.body.admin_id) return res.status(403).json({Error:"not the same user loged in"})
+//1 day = 1 * 24 * 60 * 60000 = 1 x 24 hours x 60 minutes x 60 seconds x 1000 milliseconds
+
+const dataToBeUploaded=new post_category({
+post_category_name:req.body.post_category_name,
+})
+try{
+  const saved_data=await dataToBeUploaded.save()
+  res.status(200).json(saved_data)
+}catch(err){
+  res.status(400).json({error:err.message})
+}
+
+})
+
+//========================================
+app.post("/admin/new/subcategory",async(req,res)=>{
+//if(req.user.user_id != req.body.admin_id) return res.status(403).json({Error:"not the same user loged in"})
+//1 day = 1 * 24 * 60 * 60000 = 1 x 24 hours x 60 minutes x 60 seconds x 1000 milliseconds
+
+const dataToBeUploaded=new post_subcategory({
+post_subcategory_name:req.body.post_subcategory_name,
+post_parent_catagory:req.body.post_parent_catagory
+})
+try{
+  const saved_data=await dataToBeUploaded.save()
+  res.status(200).json(saved_data)
+}catch(err){
+  res.status(400).json({error:err.message})
+}
+
+})
+
+
+//========================================
 
 
 app.post("/admin/add/extra/field",async(req,res)=>{
@@ -515,18 +551,18 @@ res.status(200).json(data)
 app.post("/user/purchase/packege",async(req,res)=>{
 //if(req.user.user_id != req.body.admin_id) return res.status(403).json({Error:"not the same user loged in"})
 //1 day = 1 * 24 * 60 * 60000 = 1 x 24 hours x 60 minutes x 60 seconds x 1000 milliseconds
-var packegeList=req.body.packeges;
-var total_post_available=0;
-var end_date_total=Date.now();
-for (var i = packegeList.length - 1; i >= 0; i--) {
- httpdata=await axios("http://localhost:3000/user/plan/"+packegeList[i])
- total_post_available+=parseInt(httpdata.data[0].post_available); 
- end_date_total+=parseInt(httpdata.data[0].duration);
-}
-
+ try{ var packegeList=req.body.packeges;
+  var total_post_available=0;
+  var end_date_total=Date.now();
+  for (var i = packegeList.length - 1; i >= 0; i--) {
+   httpdata=await axios("http://localhost:3000/user/plan/"+packegeList[i])
+   total_post_available+=parseInt(httpdata.data[0].post_available); 
+   end_date_total+=parseInt(httpdata.data[0].duration);
+  }
+}catch(err){res.status(400).json({error:err.message})}
 // res.send(`total post available: ${total_post_available}  end date total ${new Date(end_date_total)>Date.now()}`)
 
-const dataToBeUploaded=new plan_purchase({
+const dataToBeUploaded=new plan_purchase({ 
 user_id:req.body.user_id,
 plan_id:packegeList,
 post_available:total_post_available,
@@ -538,6 +574,14 @@ try{
 }catch(err){
   res.status(400).json({error:err.message})
 }
+
+})
+//=========================
+app.get("/user/my/packege/:user_id",async(req,res)=>{
+
+const data=await plan_purchase.find({user_id:req.params.user_id})
+console.log(data)
+res.status(200).json(data)
 
 })
 
@@ -580,7 +624,38 @@ console.log(data)
 res.status(200).json(data)
 
 })
+//=========================
 
+app.get("/user/all/ads/:offset",async(req,res)=>{
+
+const data=await post.find().skip(req.params.offset).limit(2)
+console.log(data)
+res.status(200).json(data)
+
+})
+//=========================
+
+app.get("/user/ads/:ad_id",async(req,res)=>{
+
+const data=await post.find({_id:req.params.ad_id})
+console.log(data)
+res.status(200).json(data)
+
+})
+//=============================
+
+app.get("/user/recommendation/ads",async(req,res)=>{
+
+const data=await post.find({
+  post_location :req.body.location,
+  post_subcategory:req.body.subcategory,
+
+
+})
+console.log(data)
+res.status(200).json(data)
+
+})
 
 //=========================
 app.get("/user/all/category",async(req,res)=>{
@@ -599,6 +674,21 @@ console.log(data)
 res.status(200).json(data)
 
 })
+//=========================
+app.post("/admin/add/location",async(req,res)=>{
+const dataToBeUploaded=new location({
+location_name :req.body.location_name,
+
+})
+try{
+  const saved_data=await dataToBeUploaded.save()
+  res.status(200).json(saved_data)
+}catch(err){
+  res.status(400).json({error:err.message})
+}
+
+})
+
 
 //=======================
 app.get("/user/all/subcategory/:category",async(req,res)=>{
@@ -671,10 +761,13 @@ res.status(200).json(data)
 
 })
 //==========================
-app.post("/user/add/to/wishlist",authenticateUserToken,async(req,res)=>{
-if(req.user.user_id != req.body.wish_user_id) return res.status(403).json({Error:"not the same user loged in"})
+app.get("/user/add/to/wishlist/:wish_user_id/:wish_product_id",async(req,res)=>{
+//if(req.user.user_id != req.params.wish_user_id) return res.status(403).json({Error:"not the same user loged in"})
 
-const dataToBeUploaded=new wishlist(req.body)
+const dataToBeUploaded=new wishlist({
+  wish_user_id:req.params.wish_user_id,
+  wish_product_id:req.params.wish_product_id
+})
 try{
 
   const saved_data=await dataToBeUploaded.save()
@@ -687,11 +780,11 @@ try{
 
 })
 //===========================
-app.get("/user/my/wishlist",authenticateUserToken,async(req,res)=>{
-if(req.user.user_id != req.body.user_id) return res.status(403).json({Error:"not the same user loged in"})
+app.get("/user/my/wishlist/:user_id",async(req,res)=>{
+//if(req.user.user_id != req.params.user_id) return res.status(403).json({Error:"not the same user loged in"})
 
 
-const data=await wishlist.find({wish_user_id:req.body.user_id})
+const data=await wishlist.find({wish_user_id:req.params.user_id})
 console.log(data)
 res.status(200).json(data)
 
