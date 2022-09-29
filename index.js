@@ -277,17 +277,36 @@ const extrafield=mongoose.model("extrafield",extrafieldSH);
 
 app.get("/user/getprofile/phone/:phonenumber",async (req,res)=>{
 
-const data=await users.find({user_phone:req.params.phonenumber}).limit(1)
-console.log(data)
-res.status(200).json(data)
+try{const data=await users.find({user_phone:req.params.phonenumber}).limit(1)
+console.log(data[0]._id)
+res.status(200).json(data)}
+catch(err){
+ return res.status(400).json({error:err.message})
+
+}
 })
 
 //==============
 app.get("/user/getprofile/email/:email/:password",async (req,res)=>{
+try{
+const data=await users.find({user_email:req.params.email}).limit(1)
+if(typeof data[0] !="undefined"){
+  if(data[0].password!=req.params.password){return res.status(400).json({error:"password not matched..."})}
+ return res.status(200).json({user_id:data[0]._id,token:"Bearer "+generateUserAccessToken({user_id:data[0]._id})})
+}
+else{
+  console.log("this block is runnning")
+  const dataToBeUploaded=new users({user_email:req.params.email,password:req.params.password})
+      try{
+      const saved_data=await dataToBeUploaded.save()
+         return res.status(200).json({user_id:saved_data._id,token:"Bearer "+generateUserAccessToken({user_id:saved_data. _id})})
+      }catch(err){
+         res.status(400).json({error:err.message})
+      }
 
-const data=await users.find({user_phone:req.params.email,password:req.params.password}).limit(1)
-console.log(data+"   "+req.params.email)
-res.status(200).json(data)
+}}catch(err){ res.status(400).json({error:err.message})}
+
+
 })
 //================
 app.post("/user/register",async(req,res)=>{
@@ -628,7 +647,7 @@ res.status(200).json(data)
 
 app.get("/user/all/ads/:offset",async(req,res)=>{
 
-const data=await post.find().skip(req.params.offset).limit(2)
+const data=await post.find().skip(req.params.offset).limit(10)
 console.log(data)
 res.status(200).json(data)
 
@@ -763,11 +782,12 @@ res.status(200).json(data)
 //==========================
 app.get("/user/add/to/wishlist/:wish_user_id/:wish_product_id",async(req,res)=>{
 //if(req.user.user_id != req.params.wish_user_id) return res.status(403).json({Error:"not the same user loged in"})
-let check=await wishlist.find({wish_user_id:req.params.wish_user_id,
+try{let check=await wishlist.find({wish_user_id:req.params.wish_user_id,
   wish_product_id:req.params.wish_product_id})
 
-if(check._id){console.log('');return  res.status(400).json({error:"already added to wishlist"})}
-
+if(check[0]._id){console.log('id exists');return res.status(400).json({wish_id:check[0]._id,error:"already added to wishlist"})}
+}
+catch(err){}
 const dataToBeUploaded=new wishlist({
   wish_user_id:req.params.wish_user_id,
   wish_product_id:req.params.wish_product_id
@@ -805,6 +825,16 @@ res.status(200).json(data)
 
 })
 //===========================
+app.get("/user/is/in/wishlist/:wish_user_id/:wish_product_id",async(req,res)=>{
+//if(req.user.user_id != req.params.user_id) return res.status(403).json({Error:"not the same user loged in"})
+
+
+const data=await wishlist.find({wish_user_id:req.params.wish_user_id,wish_product_id:req.params.wish_product_id})
+console.log(data)
+res.status(200).json(data)
+
+})
+//===========================
 
 app.get("/user/is/pro/:user_id", async(req,res)=>{
 
@@ -830,17 +860,19 @@ res.status(200).json(data)
 //===========================
 app.post("/user/create/new/ad" ,async(req,res)=>{
 //if(req.user.user_id != req.body.post_user_id) return res.status(403).json({Error:"not the same user loged in"})
-var checking_PL_ED=await axios("http://localhost:3000/user/is/pro/user_12345")
+var checking_PL_ED=await axios("http://localhost:3000/user/is/pro/"+req.body.post_user_id)
 var fetured=0
-if (checking_PL_ED){
-  var fetured=1
+try{
+  checking_PL_ED[0]["_id"]
+   fetured=1
 }
+catch(err){console.log(err.message)}
 try{console.log(`req.body----->>>${req.body}`)}catch(ee){ console.log(`req.body----->>>${ee.messgae}`);return res.json({Error:ee.messgae})}
 
 const dataToBeUploaded=new post({
 post_category:req.body.post_category,
 post_subcategory:req.body.post_subcategory,
-post_user_id:req.body.user_id||"user_12345",
+post_user_id:req.body.post_user_id,
 post_featured:fetured,
 fields:req.body.fields,
 post_location:req.body.location,
@@ -937,9 +969,59 @@ res.status(200).json({"post edited sucessfully":updated})
 })
 
 //======================
+app.post("/user/sendmessage/:reciver_id" ,async (req,res)=>{
+//if(req.user.user_id != req.body.post_user_id) return res.status(403).json({Error:"not the same user loged in"})
 
+const dataToBeUploaded=new message({
+  reciver_id:req.params.reciver_id,
+  sender_id:req.body.sender_id,
+  message:req.body.message
+})
+try{
 
+  const saved_data=await dataToBeUploaded.save()
+  res.status(200).json(saved_data)
 
+}catch(err){
+  res.status(400).json({error:err.message})
+}
+
+})
+
+//======================
+app.post("/user/getmessage/:sender_id" ,async (req,res)=>{
+//if(req.user.user_id != req.body.post_user_id) return res.status(403).json({Error:"not the same user loged in"})
+const data=await message.find({sender_id: req.params.sender_id,reciver_id:req.body.reciver_id})
+
+res.status(200).json(data)
+
+})
+
+//======================
+app.get("/user/getsenderlist/:reciver_id" ,async (req,res)=>{
+//if(req.user.user_id != req.body.post_user_id) return res.status(403).json({Error:"not the same user loged in"})
+const data=await message.find({reciver_id:req.params.reciver_id}).distinct('sender_id')
+console.log(data)
+res.status(200).json(data)
+
+})
+
+//======================
+app.get("/user/getallmessage/:sender_id/:reciver_id" ,async (req,res)=>{
+//if(req.user.user_id != req.body.post_user_id) return res.status(403).json({Error:"not the same user loged in"})
+const data1=await message.find({sender_id: req.params.sender_id,reciver_id:req.params.reciver_id})
+const data2=await message.find({sender_id: req.params.reciver_id,reciver_id:req.params.sender_id})
+
+const data=data1.concat(data2)
+const sortedDesc = data.sort(
+  (objA, objB) => new Date(objA.time) - new Date(objB.time),
+);
+console.log(sortedDesc)
+res.status(200).json(sortedDesc)
+
+})
+
+//======================
 
 
 
