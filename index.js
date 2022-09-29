@@ -136,7 +136,7 @@ post_date:{type:Date,default:Date.now},
 post_user_id:{type:String,required:true},
 post_featured:{type:Number,default:0},
 post_location:{type:String,required:true},
-fields:{type:String},
+fields:{type:String,required:true},
 boost_id:{type:String},
 post_title:{type:String,required:true},
 post_image:[{type: String,required:true}],
@@ -283,9 +283,9 @@ res.status(200).json(data)
 })
 
 //==============
-app.get("/user/getprofile/email/:email",async (req,res)=>{
+app.get("/user/getprofile/email/:email/:password",async (req,res)=>{
 
-const data=await users.find({user_phone:req.params.email}).limit(1)
+const data=await users.find({user_phone:req.params.email,password:req.params.password}).limit(1)
 console.log(data+"   "+req.params.email)
 res.status(200).json(data)
 })
@@ -636,11 +636,11 @@ res.status(200).json(data)
 //=========================
 
 app.get("/user/ads/:ad_id",async(req,res)=>{
-
+try{
 const data=await post.find({_id:req.params.ad_id})
 console.log(data)
 res.status(200).json(data)
-
+}catch(err){res.json(0)}
 })
 //=============================
 
@@ -763,6 +763,10 @@ res.status(200).json(data)
 //==========================
 app.get("/user/add/to/wishlist/:wish_user_id/:wish_product_id",async(req,res)=>{
 //if(req.user.user_id != req.params.wish_user_id) return res.status(403).json({Error:"not the same user loged in"})
+let check=await wishlist.find({wish_user_id:req.params.wish_user_id,
+  wish_product_id:req.params.wish_product_id})
+
+if(check._id){console.log('');return  res.status(400).json({error:"already added to wishlist"})}
 
 const dataToBeUploaded=new wishlist({
   wish_user_id:req.params.wish_user_id,
@@ -779,6 +783,17 @@ try{
 
 
 })
+//==========================
+app.get("/user/remove/from/wishlist/:wish_user_id/:wish_id",async(req,res)=>{
+//if(req.user.user_id != req.params.wish_user_id) return res.status(403).json({Error:"not the same user loged in"})
+
+try{
+ const updated=await wishlist.findByIdAndDelete(req.params.wish_id)
+res.status(200).json({"DELETEed":updated})
+}catch(err){res.status(405).json({Error:err.message})}
+
+})
+
 //===========================
 app.get("/user/my/wishlist/:user_id",async(req,res)=>{
 //if(req.user.user_id != req.params.user_id) return res.status(403).json({Error:"not the same user loged in"})
@@ -815,32 +830,41 @@ res.status(200).json(data)
 //===========================
 app.post("/user/create/new/ad" ,async(req,res)=>{
 //if(req.user.user_id != req.body.post_user_id) return res.status(403).json({Error:"not the same user loged in"})
-var checking_PL_ED=await axios("http://localhost:3000/user/is/pro/"+req.body.user_id)
+var checking_PL_ED=await axios("http://localhost:3000/user/is/pro/user_12345")
 var fetured=0
 if (checking_PL_ED){
   var fetured=1
 }
-
+try{console.log(`req.body----->>>${req.body}`)}catch(ee){ console.log(`req.body----->>>${ee.messgae}`);return res.json({Error:ee.messgae})}
 
 const dataToBeUploaded=new post({
-post_category:req.body.category,
-post_subcategory:req.body.subcategory,
-post_user_id:req.body.user_id,
+post_category:req.body.post_category,
+post_subcategory:req.body.post_subcategory,
+post_user_id:req.body.user_id||"user_12345",
 post_featured:fetured,
+fields:req.body.fields,
 post_location:req.body.location,
-post_title:req.body.title,
-post_image:req.body.images,
-post_price:req.body.price,
-post_description:req.body.description,
-auth_name:req.body.name,
+post_title:req.body.post_title,
+post_image:JSON.parse(req.body.post_image),
+post_price:req.body.post_price,
+post_description:req.body.post_description,
+auth_name:req.body.auth_name,
 
 })
 try{
 const saved_data=await dataToBeUploaded.save()
-const updated=await plan_purchase.findOneAndUpdate(req.body.user_id, {$inc: {post_available: -1}})
-res.status(200).json({"post uploaded":saved_data})
+
+const updated=await plan_purchase.findOneAndUpdate({
+  user_id:"user_12345",
+  post_available:{$gt: 0},
+  end_date:{$gte: Date.now()},
+
+
+}, {$inc: {post_available: -1}})
+
+return res.status(200).json({"post uploaded":saved_data})
 }catch(err){
-  res.status(400).json({error:err.message})
+ return res.status(400).json({error:err.message})
 }
 
 })
@@ -881,8 +905,7 @@ res.status(200).json(data)
 app.post("/user/related/ads", async(req,res)=>{
 
 const data=await post.find({
-  post_location :req.body.location,
-  post_category:req.body.category,
+  
   post_subcategory:req.body.subcategory,
   post_price:{$gte: req.body.minval, $lte: req.body.maxval}
 })
