@@ -157,6 +157,8 @@ time:{type:Date,default:Date.now},
 
 const packegeSH = mongoose.Schema(
 {
+boost_category:{type:String,required:true},
+boost_subcategory:{type:String,required:true},
 plan_name:{type:String,required:true},
 duration:{type:Number,required:true},
 disprice:{type:String,required:true},
@@ -195,6 +197,9 @@ boost_duration:{type:Number,required:true},
 boost_activecount:{type:Number},
 
 })
+
+
+
 const adminSH = mongoose.Schema(
 {
 
@@ -240,7 +245,18 @@ const plan_purchaseSH = mongoose.Schema(
   post_available:{type:Number,required:true},
   end_date:{type:Date,required:true},
   purchase_date:{type:Date,default:Date.now},
+  post_ids:[{type:String,required:true,default:""}]
   })
+
+const boost_purchaseSH = mongoose.Schema(
+{
+  plan_id :[{type:String,required:true}],
+  user_id:{type:String,required:true},
+  end_date:{type:Date,required:true},
+  purchase_date:{type:Date,default:Date.now},
+  post_ids:{type:String,required:true}
+  })
+
 
 const extrafieldSH = mongoose.Schema(
 {
@@ -267,6 +283,7 @@ const admin=mongoose.model("admin",adminSH);
 const reviews=mongoose.model("reviews",reviewsSH);
 const packege=mongoose.model("packege",packegeSH);
 const plan_purchase=mongoose.model("plan_purchase",plan_purchaseSH);
+const boost_purchase=mongoose.model("boost_purchase",boost_purchaseSH);
 const extrafield=mongoose.model("extrafield",extrafieldSH);
 
 //const nMessage=mongoose.model("nMessage",normalMessage);
@@ -372,6 +389,8 @@ app.post("/admin/new/plan",async(req,res)=>{
 //1 day = 1 * 24 * 60 * 60000 = 1 x 24 hours x 60 minutes x 60 seconds x 1000 milliseconds
 
 const dataToBeUploaded=new packege({
+boost_category:req.body.boost_category,
+boost_subcategory:req.body.boost_subcategory,
 regprice:req.body.regprice,
 disprice:req.body.disprice,
 plan_name:req.body.plan_name,
@@ -386,6 +405,32 @@ try{
 }
 
 })
+//========================================
+
+
+app.post("/admin/new/boost/plan",async(req,res)=>{
+//if(req.user.user_id != req.body.admin_id) return res.status(403).json({Error:"not the same user loged in"})
+//1 day = 1 * 24 * 60 * 60000 = 1 x 24 hours x 60 minutes x 60 seconds x 1000 milliseconds
+
+const dataToBeUploaded=new boost({
+
+boost_category:req.body.boost_category,
+boost_subcategory:req.body.boost_subcategory,
+boost_title:req.body.boost_title,
+boost_regprice:req.body.boost_regprice,
+boost_discprice:req.body.boost_discprice,
+boost_duration:parseInt(req.body.boost_duration)* 24 * 60 * 60000,
+})
+
+try{
+  const saved_data=await dataToBeUploaded.save()
+  res.status(200).json(saved_data)
+}catch(err){
+  res.status(400).json({error:err.message})
+}
+
+})
+
 //========================================
 app.post("/admin/new/category",async(req,res)=>{
 //if(req.user.user_id != req.body.admin_id) return res.status(403).json({Error:"not the same user loged in"})
@@ -595,10 +640,80 @@ try{
 }
 
 })
+//=============================
+app.post("/user/purchase/boost",async(req,res)=>{
+//if(req.user.user_id != req.body.admin_id) return res.status(403).json({Error:"not the same user loged in"})
+//1 day = 1 * 24 * 60 * 60000 = 1 x 24 hours x 60 minutes x 60 seconds x 1000 milliseconds
+ try{ 
+  var end_date_total=Date.now();
+  var purchase_date=Date.now();
+  const datax=await boost_purchase.find({user_id:req.body.user_id})
+
+  for (var i = 0; i < datax.length; i++) {
+    
+   if(new Date(datax[i].end_date)>end_date_total && datax[i].post_ids==req.body.post_id){
+end_date_total=new Date(datax[i].end_date).getTime()
+purchase_date=datax[i].end_date
+   }
+  }
+
+console.log("purchase_date"+purchase_date)
+  var packegeList=req.body.boost;
+
+
+   httpdata=await axios("http://localhost:3000/user/boost/"+packegeList)
+   end_date_total+=parseInt(httpdata.data[0].boost_duration);
+}catch(err){return res.status(400).json({error:err.message})}
+// res.send(`total post available: ${total_post_available}  end date total ${new Date(end_date_total)>Date.now()}`)
+
+const dataToBeUploaded=new boost_purchase({ 
+user_id:req.body.user_id,
+plan_id:packegeList,
+end_date:end_date_total,
+purchase_date:purchase_date,
+post_ids:req.body.post_id
+})
+try{
+  const saved_data=await dataToBeUploaded.save()
+
+
+try{
+ const updated=await post.findByIdAndUpdate(req.body.post_id, {post_featured:1})
+//res.status(200).json({"post featured sucessfully":updated})
+}catch(err){res.status(405).json({Error:err.message})}
+
+
+  return res.status(200).json(saved_data)
+}catch(err){
+  return res.status(400).json({error:err.message})
+}
+
+})
+
+app.patch("/update/database",async(req,res)=>{
+const datax=await boost_purchase.find({end_date:{$lte:Date.now()}})
+for (var i = 0; i < datax.length; i++) {
+await post.findByIdAndUpdate(datax[i].post_ids, {post_featured:0})
+}
+
+
+
+})
+
+
+
 //=========================
 app.get("/user/my/packege/:user_id",async(req,res)=>{
 
 const data=await plan_purchase.find({user_id:req.params.user_id})
+console.log(data)
+res.status(200).json(data)
+
+})
+//=========================
+app.get("/user/my/boost/:user_id",async(req,res)=>{
+
+const data=await boost_purchase.find({user_id:req.params.user_id})
 console.log(data)
 res.status(200).json(data)
 
@@ -613,6 +728,24 @@ console.log(data)
 res.status(200).json(data)
 
 })
+//=========================
+
+app.get("/user/all/boost/plans/:subcategory",async(req,res)=>{
+
+const data=await boost.find({post_subcategory:req.params.subcategory})
+console.log(data)
+res.status(200).json(data)
+
+})
+//=============================
+app.get("/user/boost/:boost_id",async(req,res)=>{
+
+const data=await boost.find({_id:req.params.boost_id})
+console.log(data)
+res.status(200).json(data)
+
+})
+
 //==================
 
 app.post("/user/editprofile/:user_id", authenticateUserToken ,async (req,res)=>{
@@ -860,13 +993,31 @@ res.status(200).json(data)
 //===========================
 app.post("/user/create/new/ad" ,async(req,res)=>{
 //if(req.user.user_id != req.body.post_user_id) return res.status(403).json({Error:"not the same user loged in"})
-var checking_PL_ED=await axios("http://localhost:3000/user/is/pro/"+req.body.post_user_id)
-var fetured=0
+const data=await plan_purchase.find({
+  user_id :req.body.post_user_id,
+  post_available:{$gt: 0},
+  end_date:{$gte: Date.now()},
+  
+})
+var fetured=0;
+for (var i = 0; i < data.length; i++) {
+
+const plandetails=await packege.find({_id:data[i].plan_id})
+
+console.log("data")
+console.log(data)
+console.log("plandetails")
+console.log(plandetails)
 try{
-  checking_PL_ED[0]["_id"]
-   fetured=1
+  console.log(`if(${data[i]._id} && ${plandetails[0].boost_subcategory}==${req.body.post_subcategory}){${fetured}=1}`)
+  if(data[i]._id && plandetails[0].boost_subcategory==req.body.post_subcategory){fetured=1}
+  console.log(`2nd if(${data[i]._id} && ${plandetails[0].boost_subcategory}==${req.body.post_subcategory}){${fetured}=1}`)
+
 }
 catch(err){console.log(err.message)}
+}
+
+
 try{console.log(`req.body----->>>${req.body}`)}catch(ee){ console.log(`req.body----->>>${ee.messgae}`);return res.json({Error:ee.messgae})}
 
 const dataToBeUploaded=new post({
@@ -885,14 +1036,21 @@ auth_name:req.body.auth_name,
 })
 try{
 const saved_data=await dataToBeUploaded.save()
-
+if (fetured) {
 const updated=await plan_purchase.findOneAndUpdate({
-  user_id:"user_12345",
+  user_id:saved_data.post_user_id,
   post_available:{$gt: 0},
   end_date:{$gte: Date.now()},
 
 
-}, {$inc: {post_available: -1}})
+}, {
+
+$addToSet: { post_ids: saved_data._id },
+$inc: {post_available: -1}
+
+})
+}
+
 
 return res.status(200).json({"post uploaded":saved_data})
 }catch(err){
@@ -955,7 +1113,15 @@ res.status(200).json({"Marked as sold":updated})
 }catch(err){res.status(405).json({Error:err.message})}
 
 })
+//======================
+app.post("/user/re/post", authenticateUserToken ,async (req,res)=>{
+if(req.user.user_id != req.body.user_id) return res.status(403).json({Error:"not the same user loged in"})
+try{
+ const updated=await post.findByIdAndUpdate(req.body.post_id, {post_sold:0,createdAt:Date.now()})
+res.status(200).json({"reposted":updated})
+}catch(err){res.status(405).json({Error:err.message})}
 
+})
 
 //======================
 
@@ -991,7 +1157,7 @@ try{
 //======================
 app.post("/user/getmessage/:sender_id" ,async (req,res)=>{
 //if(req.user.user_id != req.body.post_user_id) return res.status(403).json({Error:"not the same user loged in"})
-const data=await message.find({sender_id: req.params.sender_id,reciver_id:req.body.reciver_id})
+const data=await message.find({sender_id: req.params.sender_id,reciver_id:req.body.reciver_id}).limit(1).sort({ time: 'desc' })
 
 res.status(200).json(data)
 
