@@ -458,6 +458,32 @@ try{
 }
 
 })
+//========================================
+app.post("/admin/delete/category/:id",async(req,res)=>{
+//if(req.user.user_id != req.body.admin_id) return res.status(403).json({Error:"not the same admin loged in"})
+
+try{
+  const saved_data=await post_category.findByIdAndDelete(req.params.id)
+  res.status(200).json(saved_data)
+}catch(err){
+  res.status(400).json({error:err.message})
+}
+
+})
+//=========================================
+app.post("/admin/edit/category/:id",async(req,res)=>{
+//if(req.user.user_id != req.body.admin_id) return res.status(403).json({Error:"not the same admin loged in"})
+
+try{
+  const saved_data=await post_category.findByIdAndUpdate(req.params.id,req.body)
+  res.status(200).json(saved_data)
+}catch(err){
+  res.status(400).json({error:err.message})
+}
+
+})
+
+
 
 //========================================
 app.post("/admin/new/subcategory",async(req,res)=>{
@@ -476,6 +502,32 @@ try{
 }
 
 })
+//========================================
+
+app.post("/admin/delete/subcategory/:id",async(req,res)=>{
+//if(req.user.user_id != req.body.admin_id) return res.status(403).json({Error:"not the same admin loged in"})
+
+try{
+  const saved_data=await post_subcategory.findByIdAndDelete(req.params.id)
+  res.status(200).json(saved_data)
+}catch(err){
+  res.status(400).json({error:err.message})
+}
+
+})
+//=========================================
+app.post("/admin/edit/subcategory/:id",async(req,res)=>{
+//if(req.user.user_id != req.body.admin_id) return res.status(403).json({Error:"not the same admin loged in"})
+
+try{
+  const saved_data=await post_subcategory.findByIdAndUpdate(req.params.id,req.body)
+  res.status(200).json(saved_data)
+}catch(err){
+  res.status(400).json({error:err.message})
+}
+
+})
+
 
 
 //========================================
@@ -786,8 +838,8 @@ console.log("purchase_date"+purchase_date)
               //res.status(200).json({"post featured sucessfully":updated})
                 }catch(err){res.status(405).json({Error:err.message})}
 
-
-                return res.status(200).json(saved_data)
+                 res.redirect('https://juliamongo.primeshaun.in/my-ads.php');
+                
               }catch(err){
                 return res.status(400).json({error:err.message})
               }
@@ -852,7 +904,7 @@ end_date:end_date_total
 })
 try{
   const saved_data=await dataToBeUploaded.save()
- return res.status(200).json(saved_data)
+ res.redirect('https://juliamongo.primeshaun.in/orders.php');
 }catch(err){
  return res.status(400).json({error:err.message})
 }
@@ -1026,6 +1078,14 @@ try{
 app.get("/user/all/subcategory/:category",async(req,res)=>{
 
 const data=await post_subcategory.find({post_parent_catagory:req.params.category})
+console.log(data)
+res.status(200).json(data)
+
+}) 
+//=======================
+app.get("/user/all/subcategory",async(req,res)=>{
+
+const data=await post_subcategory.find()
 console.log(data)
 res.status(200).json(data)
 
