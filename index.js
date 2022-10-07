@@ -96,8 +96,18 @@ const usersSH = mongoose.Schema(
 user_phone:{type:String},
 user_email:String,
 password:{type:String,required:true,min:6},
-user_status:{type:Number,default:1}
+user_status:{type:Number,default:1},
+post_available:{type:Number,default:3}
 })
+
+const mopeSH = mongoose.Schema(
+{
+  user_id:String,
+order_id:{type:String},
+txnId:String
+})
+
+
 
 const user_infoSH = mongoose.Schema(
 {
@@ -285,6 +295,7 @@ const packege=mongoose.model("packege",packegeSH);
 const plan_purchase=mongoose.model("plan_purchase",plan_purchaseSH);
 const boost_purchase=mongoose.model("boost_purchase",boost_purchaseSH);
 const extrafield=mongoose.model("extrafield",extrafieldSH);
+const mope=mongoose.model("mope",mopeSH);
 
 //const nMessage=mongoose.model("nMessage",normalMessage);
 //===========================
@@ -610,12 +621,219 @@ console.log(data)
 res.status(200).json(data)
 
 })
+//============================
+app.post("/user/build/order/",async(req,res)=>{
+const data=new mope({user_id:req.body.user_id, order_id:"ord"+Math.floor(Math.random()*1000000)})
+var saveddata=await data.save()//.find({user_id:req.params.user_id})
+
+
+  try{
+var total=0
+var len=req.body.plan_id
+if(typeof len=="string"){len=new Array(len)}
+console.log(len)
+for (var i = 0; i < len.length; i++) {
+  console.log(len[i])
+ const data=await packege.find({_id:len[i]})
+console.log(data)
+
+ total+=parseInt(data[0].disprice)
+}
+
+}catch(err){return res.status(400).json(err.message)}
+var axiosbody={
+description: len.toString(),
+amount: total*100,
+order_id:saveddata._id,
+currency: "SRD",
+redirect_url: `http://localhost:3000/mope/redirect/url/${saveddata._id}/${req.body.user_id}`
+}
+try{
+var result_data=await axios.post("https://api.mope.sr/api/shop/payment_request",axiosbody,
+  {headers:{'Content-Type': 'application/json;charset=UTF-8',
+  "Authorization": "Bearer test_3a98758e3b711e693280a184a57d8efcb304611820d60748b23c20157a"}  })
+console.log(result_data.data)
+await mope.findByIdAndUpdate(saveddata._id,{txnId:result_data.data.id})
+res.status(200).json({data:result_data.data,total:total,nop:len.length})
+}catch(err){console.log({error:err.message})}
+})
 
 //=============================
 app.post("/user/purchase/packege",async(req,res)=>{
 //if(req.user.user_id != req.body.admin_id) return res.status(403).json({Error:"not the same user loged in"})
 //1 day = 1 * 24 * 60 * 60000 = 1 x 24 hours x 60 minutes x 60 seconds x 1000 milliseconds
- try{ var packegeList=req.body.packeges;
+res.status(403).json("Not here use site to view ")
+
+})
+//=============================
+
+app.post("/user/build/boost",async(req,res)=>{
+
+const data=new mope({user_id:req.body.user_id, order_id:"ord"+Math.floor(Math.random()*1000000)})
+var saveddata=await data.save()//.find({user_id:req.params.user_id})
+var packegeList=req.body.boost;
+
+
+   httpdata=await axios("http://localhost:3000/user/boost/"+packegeList)
+
+   var axiosbody={
+description: req.body.boost.toString(),
+amount: httpdata.data[0].boost_discprice*100,
+order_id:saveddata._id,
+currency: "SRD",
+redirect_url:`http://localhost:3000/mope/boost/redirect/url/${saveddata._id}/${req.body.user_id}/${req.body.post_id}/${req.body.boost}`
+}
+
+
+
+// res.send(`total post available: ${total_post_available}  end date total ${new Date(end_date_total)>Date.now()}`)
+
+try{
+
+var result_data=await axios.post("https://api.mope.sr/api/shop/payment_request",axiosbody,
+  {headers:{'Content-Type': 'application/json;charset=UTF-8',
+  "Authorization": "Bearer test_3a98758e3b711e693280a184a57d8efcb304611820d60748b23c20157a"}  })
+console.log(result_data.data)
+await mope.findByIdAndUpdate(saveddata._id,{txnId:result_data.data.id})
+res.status(200).json({data:result_data.data})
+
+
+
+}catch(err){return res.status(400).json(err.message)}
+
+
+
+
+})
+
+
+
+
+//=============================
+app.get("/mope/boost/redirect/url/:order_id/:user_id/:post_id/:boost",async(req,res)=>{
+//if(req.user.user_id != req.body.admin_id) return res.status(403).json({Error:"not the same user loged in"})
+//1 day = 1 * 24 * 60 * 60000 = 1 x 24 hours x 60 minutes x 60 seconds x 1000 milliseconds
+
+try{
+const txnId=await mope.find({_id:req.params.order_id})
+console.log(`txn_id==${txnId[0].txnId}`)
+httpdata=await axios(`https://api.mope.sr/api/shop/payment_request/${txnId[0].txnId}`, {headers:{'Content-Type': 'application/json;charset=UTF-8',
+  "Authorization": "Bearer test_3a98758e3b711e693280a184a57d8efcb304611820d60748b23c20157a"}  })
+console.log(httpdata.data)
+//res.status(200).json({"data":httpdata.data})
+try{
+  var bodydata=JSON.stringify((httpdata.data.description).split(","))
+}catch(err){bodydata=JSON.stringify(new Array(httpdata.data.description))}
+console.log(bodydata)
+if(httpdata.data.status=="paid"){
+
+try{
+  var checking=await post.find({_id:req.params.post_id})
+  var post_subcategory=checking[0].post_subcategory
+}catch(err){}
+
+
+ try{ 
+  var end_date_total=Date.now();
+  var purchase_date=Date.now();
+  const datax=await boost_purchase.find({user_id:req.params.user_id})
+
+  for (var i = 0; i < datax.length; i++) {
+    
+   if(new Date(datax[i].end_date)>end_date_total && datax[i].post_ids==req.params.post_id){
+end_date_total=new Date(datax[i].end_date).getTime()
+purchase_date=datax[i].end_date
+   }
+  }
+
+console.log("purchase_date"+purchase_date)
+  var packegeList=req.params.boost;
+
+
+   httpdata=await axios("http://localhost:3000/user/boost/"+packegeList)
+
+   end_date_total+=parseInt(httpdata.data[0].boost_duration);
+   console.log("httpdata")
+
+   console.log(httpdata.data[0])
+
+
+   if(httpdata.data[0].boost_subcategory!=post_subcategory){return res.status(400).json({"Not the same sub category":httpdata[0].boost_subcategory})}
+}catch(err){return res.status(400).json({error:err.message})}
+
+// res.send(`total post available: ${total_post_available}  end date total ${new Date(end_date_total)>Date.now()}`)
+
+
+
+
+              const dataToBeUploaded=new boost_purchase({ 
+              user_id:req.params.user_id,
+              plan_id:packegeList,
+              end_date:end_date_total,
+              purchase_date:purchase_date,
+              post_ids:req.params.post_id
+              })
+
+
+
+
+              try{
+                const saved_data=await dataToBeUploaded.save()
+
+
+                try{
+               const updated=await post.findByIdAndUpdate(req.params.post_id, {post_featured:1})
+              //res.status(200).json({"post featured sucessfully":updated})
+                }catch(err){res.status(405).json({Error:err.message})}
+
+
+                return res.status(200).json(saved_data)
+              }catch(err){
+                return res.status(400).json({error:err.message})
+              }
+
+
+
+
+
+
+
+
+}
+
+
+}catch(err){return res.status(400).json(err.message)}
+
+
+
+
+ })
+
+app.patch("/update/database",async(req,res)=>{
+const datax=await boost_purchase.find({end_date:{$lte:Date.now()}})
+for (var i = 0; i < datax.length; i++) {
+var data=await post.findByIdAndUpdate(datax[i].post_ids, {post_featured:0})
+res.json(data)
+}
+})
+
+//=========================
+app.get("/mope/redirect/url/:order_id/:user_id",async(req,res)=>{
+  try{
+const txnId=await mope.find({_id:req.params.order_id})
+console.log(`txn_id==${txnId[0].txnId}`)
+httpdata=await axios(`https://api.mope.sr/api/shop/payment_request/${txnId[0].txnId}`, {headers:{'Content-Type': 'application/json;charset=UTF-8',
+  "Authorization": "Bearer test_3a98758e3b711e693280a184a57d8efcb304611820d60748b23c20157a"}  })
+console.log(httpdata.data)
+//res.status(200).json({"data":httpdata.data})
+try{
+  var bodydata=JSON.stringify((httpdata.data.description).split(","))
+}catch(err){bodydata=JSON.stringify(new Array(httpdata.data.description))}
+console.log(bodydata)
+if(httpdata.data.status=="paid"){
+
+
+ try{ var packegeList=JSON.parse(bodydata);
   var total_post_available=0;
   var end_date_total=Date.now();
   for (var i = packegeList.length - 1; i >= 0; i--) {
@@ -623,81 +841,34 @@ app.post("/user/purchase/packege",async(req,res)=>{
    total_post_available+=parseInt(httpdata.data[0].post_available); 
    end_date_total+=parseInt(httpdata.data[0].duration);
   }
-}catch(err){res.status(400).json({error:err.message})}
+}catch(err){return res.status(400).json({error:err.message})}
 // res.send(`total post available: ${total_post_available}  end date total ${new Date(end_date_total)>Date.now()}`)
 
 const dataToBeUploaded=new plan_purchase({ 
-user_id:req.body.user_id,
+user_id:req.params.user_id,
 plan_id:packegeList,
 post_available:total_post_available,
 end_date:end_date_total
 })
 try{
   const saved_data=await dataToBeUploaded.save()
-  res.status(200).json(saved_data)
+ return res.status(200).json(saved_data)
 }catch(err){
-  res.status(400).json({error:err.message})
-}
-
-})
-//=============================
-app.post("/user/purchase/boost",async(req,res)=>{
-//if(req.user.user_id != req.body.admin_id) return res.status(403).json({Error:"not the same user loged in"})
-//1 day = 1 * 24 * 60 * 60000 = 1 x 24 hours x 60 minutes x 60 seconds x 1000 milliseconds
- try{ 
-  var end_date_total=Date.now();
-  var purchase_date=Date.now();
-  const datax=await boost_purchase.find({user_id:req.body.user_id})
-
-  for (var i = 0; i < datax.length; i++) {
-    
-   if(new Date(datax[i].end_date)>end_date_total && datax[i].post_ids==req.body.post_id){
-end_date_total=new Date(datax[i].end_date).getTime()
-purchase_date=datax[i].end_date
-   }
-  }
-
-console.log("purchase_date"+purchase_date)
-  var packegeList=req.body.boost;
-
-
-   httpdata=await axios("http://localhost:3000/user/boost/"+packegeList)
-   end_date_total+=parseInt(httpdata.data[0].boost_duration);
-}catch(err){return res.status(400).json({error:err.message})}
-// res.send(`total post available: ${total_post_available}  end date total ${new Date(end_date_total)>Date.now()}`)
-
-const dataToBeUploaded=new boost_purchase({ 
-user_id:req.body.user_id,
-plan_id:packegeList,
-end_date:end_date_total,
-purchase_date:purchase_date,
-post_ids:req.body.post_id
-})
-try{
-  const saved_data=await dataToBeUploaded.save()
-
-
-try{
- const updated=await post.findByIdAndUpdate(req.body.post_id, {post_featured:1})
-//res.status(200).json({"post featured sucessfully":updated})
-}catch(err){res.status(405).json({Error:err.message})}
-
-
-  return res.status(200).json(saved_data)
-}catch(err){
-  return res.status(400).json({error:err.message})
-}
-
-})
-
-app.patch("/update/database",async(req,res)=>{
-const datax=await boost_purchase.find({end_date:{$lte:Date.now()}})
-for (var i = 0; i < datax.length; i++) {
-await post.findByIdAndUpdate(datax[i].post_ids, {post_featured:0})
+ return res.status(400).json({error:err.message})
 }
 
 
 
+//let httpdatas=await axios.post("http://localhost:3000/user/purchase/packege",{user_id:req.params.user_id,packeges:bodydata})
+//res.status(200).json({"purchase_sucess":httpdata.data,"packeges":httpdatas.data})
+
+
+
+
+
+}
+
+}catch(err){res.status(400).json({"error":err.message})}
 })
 
 
@@ -708,6 +879,15 @@ app.get("/user/my/packege/:user_id",async(req,res)=>{
 const data=await plan_purchase.find({user_id:req.params.user_id})
 console.log(data)
 res.status(200).json(data)
+
+})
+//=========================
+app.get("/user/get/order_id",async(req,res)=>{
+
+const data=new mope({order_id:"ord"+Math.floor(Math.random()*1000000)})
+var saveddata=await data.save()//.find({user_id:req.params.user_id})
+
+res.status(200).json({order_id:saveddata._id})
 
 })
 //=========================
@@ -732,7 +912,7 @@ res.status(200).json(data)
 
 app.get("/user/all/boost/plans/:subcategory",async(req,res)=>{
 
-const data=await boost.find({post_subcategory:req.params.subcategory})
+const data=await boost.find({boost_subcategory:req.params.subcategory})
 console.log(data)
 res.status(200).json(data)
 
@@ -999,6 +1179,11 @@ const data=await plan_purchase.find({
   end_date:{$gte: Date.now()},
   
 })
+const pa=await users.find({
+ _id :req.body.post_user_id,
+  post_available:{$gt: 0}
+})
+if(data.length && pa.length){return res.status(400).json({"No Post Left":"buy now"})}
 var fetured=0;
 for (var i = 0; i < data.length; i++) {
 
@@ -1009,9 +1194,9 @@ console.log(data)
 console.log("plandetails")
 console.log(plandetails)
 try{
-  console.log(`if(${data[i]._id} && ${plandetails[0].boost_subcategory}==${req.body.post_subcategory}){${fetured}=1}`)
-  if(data[i]._id && plandetails[0].boost_subcategory==req.body.post_subcategory){fetured=1}
-  console.log(`2nd if(${data[i]._id} && ${plandetails[0].boost_subcategory}==${req.body.post_subcategory}){${fetured}=1}`)
+  //console.log(`if(${data[i]._id} && ${plandetails[0].boost_subcategory}==${req.body.post_subcategory}){${fetured}=1}`)
+  if(data[i]._id ){fetured=1}//&& plandetails[0].boost_subcategory==req.body.post_subcategory
+  //console.log(`2nd if(${data[i]._id} && ${plandetails[0].boost_subcategory}==${req.body.post_subcategory}){${fetured}=1}`)
 
 }
 catch(err){console.log(err.message)}
@@ -1048,6 +1233,14 @@ const updated=await plan_purchase.findOneAndUpdate({
 $addToSet: { post_ids: saved_data._id },
 $inc: {post_available: -1}
 
+})
+}else{
+  const updated=await users.findOneAndUpdate({
+  _id:saved_data.post_user_id,
+  post_available:{$gt: 0}
+
+}, {
+$inc: {post_available: -1}
 })
 }
 
