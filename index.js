@@ -625,19 +625,19 @@ try{
 })
 //========================================
 app.post("/admin/post/status/accept/:id",async(req,res)=>{
-const data=await post.findByIdAndUpdate(req.params.id,{post_status:1})
+try{const data=await post.findByIdAndUpdate(req.params.id,{post_status:1})
 data["password"]=''
-res.status(200).json(data)
+res.status(200).json(data)}catch(err){res.status(400).json(err.message)}
 })
 //========================================
 app.post("/admin/post/status/delete/:id",async(req,res)=>{
-  const data=await post.findByIdAndDelete(req.params.id)
-  res.status(200).json(data)
+ try{ const data=await post.findByIdAndDelete(req.params.id)
+  res.status(200).json(data)}catch(err){res.status(400).json(err.message)}
   })
 //========================================
 app.post("/admin/delete/location/:id",async(req,res)=>{
-  const data=await location.findByIdAndDelete(req.params.id)
-  res.status(200).json(data)
+  try{const data=await location.findByIdAndDelete(req.params.id)
+  res.status(200).json(data)}catch(err){res.status(400).json(err.message)}
   })
 
 
@@ -645,123 +645,123 @@ app.post("/admin/delete/location/:id",async(req,res)=>{
 
 //========================================
 app.post("/admin/user/status/accept/:id",async(req,res)=>{
-const data=await users.findByIdAndUpdate(req.params.id,{user_status:1})
+try{const data=await users.findByIdAndUpdate(req.params.id,{user_status:1})
 data["password"]=''
-res.status(200).json(data)
+res.status(200).json(data)}catch(err){res.status(400).json(err.message)}
 })
 //========================================
 app.post("/admin/user/status/sustemp/:id",async(req,res)=>{
-const data=await users.findByIdAndUpdate(req.params.id,{user_status:3})
+try{const data=await users.findByIdAndUpdate(req.params.id,{user_status:3})
 data["password"]=''
-res.status(200).json(data)
+res.status(200).json(data)}catch(err){res.status(400).json(err.message)}
 })
 
 //========================================
 app.post("/admin/user/status/pending/:id",async(req,res)=>{
-const data=await users.findByIdAndUpdate(req.params.id,{user_status:0})
+try{const data=await users.findByIdAndUpdate(req.params.id,{user_status:0})
 data["password"]=''
-res.status(200).json(data)
+res.status(200).json(data)}catch(err){res.status(400).json(err.message)}
 })
 
 //========================================
 app.post("/admin/user/status/delete/:id",async(req,res)=>{
-  const data=await users.findByIdAndDelete(req.params.id)
-  res.status(200).json(data)
+ try{ const data=await users.findByIdAndDelete(req.params.id)
+  res.status(200).json(data)}catch(err){res.status(400).json(err.message)}
   })
 //========================================
 
 
 app.post("/admin/user/status/reject/:id",async(req,res)=>{
-  const data=await users.findByIdAndUpdate(req.params.id,{user_status:2})
+ try{ const data=await users.findByIdAndUpdate(req.params.id,{user_status:2})
   data["password"]=''
-  res.status(200).json(data)
+  res.status(200).json(data)}catch(err){res.status(400).json(err.message)}
   })
 
-//=====================
+//=====================try{
 //========================================
 app.post("/admin/admin/status/accept/:id",async(req,res)=>{
-const data=await admin.findByIdAndUpdate(req.params.id,{admin_status:1})
+try{const data=await admin.findByIdAndUpdate(req.params.id,{admin_status:1})
 data["password"]=''
-res.status(200).json(data)
+res.status(200).json(data)}catch(err){res.status(400).json(err.message)}
 })
 //========================================
 app.post("/admin/admin/status/sustemp/:id",async(req,res)=>{
-const data=await admin.findByIdAndUpdate(req.params.id,{admin_status:3})
+try{const data=await admin.findByIdAndUpdate(req.params.id,{admin_status:3})
 data["password"]=''
-res.status(200).json(data)
+res.status(200).json(data)}catch(err){res.status(400).json(err.message)}
 })
 
 //========================================
 app.post("/admin/admin/status/pending/:id",async(req,res)=>{
-const data=await admin.findByIdAndUpdate(req.params.id,{admin_status:0})
+try{const data=await admin.findByIdAndUpdate(req.params.id,{admin_status:0})
 data["password"]=''
-res.status(200).json(data)
+res.status(200).json(data)}catch(err){res.status(400).json(err.message)}
 })
 
 //========================================
 app.post("/admin/admin/status/delete/:id",async(req,res)=>{
-  const data=await admin.findByIdAndDelete(req.params.id)
-  res.status(200).json(data)
+ try{ const data=await admin.findByIdAndDelete(req.params.id)
+  res.status(200).json(data)}catch(err){res.status(400).json(err.message)}
   })
 //========================================
 
 
 app.post("/admin/admin/status/reject/:id",async(req,res)=>{
-  const data=await admin.findByIdAndUpdate(req.params.id,{admin_status:2})
+ try{ const data=await admin.findByIdAndUpdate(req.params.id,{admin_status:2})
   data["password"]=''
-  res.status(200).json(data)
+  res.status(200).json(data)}catch(err){res.status(400).json(err.message)}
   })
 
 //=====================
 
   //======================================== /admin/add/field
 app.post("/admin/post/status/reject/:id",async(req,res)=>{
-  const data=await post.findByIdAndUpdate(req.params.id,{post_status:2})
-  res.status(200).json(data)
+  try{const data=await post.findByIdAndUpdate(req.params.id,{post_status:2})
+  res.status(200).json(data)}catch(err){res.status(400).json(err.message)}
   })
  //======================================== 
  app.post("/admin/add/field",async(req,res)=>{
-  const datatosave=new fields({post_field_name:req.body.post_field_name})
+  try{const datatosave=new fields({post_field_name:req.body.post_field_name})
   const data=await datatosave.save()
-  res.status(200).json(data)
+  res.status(200).json(data)}catch(err){res.status(400).json(err.message)}
   })
  //======================================== 
  app.get("/admin/get/fields",async(req,res)=>{
   
-  const data=await fields.find()
-  res.status(200).json(data)
+  try{const data=await fields.find()
+  res.status(200).json(data)}catch(err){res.status(400).json(err.message)}
   })
   //======================================== 
  app.get("/admin/all/users/:offset",async(req,res)=>{
   
-  const data=await users.find().skip(req.params.offset).limit(10)
+ try{ const data=await users.find().skip(req.params.offset).limit(10)
   data
-  res.status(200).json(data)
+  res.status(200).json(data)}catch(err){res.status(400).json(err.message)}
   })
 //========================================
   //======================================== 
  app.get("/admin/all/admin/:offset",async(req,res)=>{
   
-  const data=await admin.find().skip(req.params.offset).limit(10)
+ try{ const data=await admin.find().skip(req.params.offset).limit(10)
   data["admin_password"]=""
-  res.status(200).json(data)
+  res.status(200).json(data)}catch(err){res.status(400).json(err.message)}
   })
 //========================================
 
 app.post("/admin/delete/field/:id",async(req,res)=>{
-  const data=await fields.findByIdAndDelete(req.params.id)
-  res.status(200).json(data)
+  try{const data=await fields.findByIdAndDelete(req.params.id)
+  res.status(200).json(data)}catch(err){res.status(400).json(err.message)}
   })
 
 //========================================
 app.post("/admin/delete/boost/:id",async(req,res)=>{
-  const data=await boost.findByIdAndDelete(req.params.id)
-  res.status(200).json(data)
+ try{ const data=await boost.findByIdAndDelete(req.params.id)
+  res.status(200).json(data)}catch(err){res.status(400).json(err.message)}
   })
 //========================================
 app.post("/admin/delete/packege/:id",async(req,res)=>{
-  const data=await packege.findByIdAndDelete(req.params.id)
-  res.status(200).json(data)
+  try{const data=await packege.findByIdAndDelete(req.params.id)
+  res.status(200).json(data)}catch(err){res.status(400).json(err.message)}
   })
 
 
@@ -877,7 +877,7 @@ try{
 
 //========================================
  app.get("/admin/dashboard/details",async(req,res)=>{
-  
+  try{
   const data=await users.find().count()
   const ab=await boost_purchase.find().count()
   const planp=await plan_purchase.find().count()
@@ -907,9 +907,12 @@ var sept=[0]
 var oct=[0]
 var nov=[0]
 var dec=[0]
+try{
 for (var i = 0; i < test.length; i++) {
   for (var j = 0; j < test[i]._id.plan_ids.length; j++) {
  var price=0
+     
+
      var x=await packege.find({_id:test[i]._id.plan_ids[j]})
      
       
@@ -976,9 +979,12 @@ arraysum(oct),
 arraysum(nov),
 arraysum(dec)
 ]
-
+}catch(err){dash=[0,0,0,0,0,0,0,0,0,0,0,0]}
 
   res.status(200).json({user:data,activeboost:ab+planp,totalpost:tp,pendingpost:pp,dashboard:dash})
+  
+
+}catch(err){res.status(400).json(err.message)}
   })
 
 //========================================
@@ -1014,8 +1020,9 @@ try{
 })
 //============================
 app.get("/admin/extra/field",async(req,res)=>{
-const data=await extrafield.find()
+try{const data=await extrafield.find()
 res.status(200).json(data)
+}catch(err){res.status(400).json(err)}
 })
 //========================================
 
@@ -1035,14 +1042,14 @@ app.get("/get/subcatname/:id",async(req,res)=>{
 try{var data=await post_subcategory.find({_id:req.params.id})
 console.log(data)
 res.status(200).json({name:data[0].post_subcategory_name})}
-catch(err){}
+catch(err){res.status(400).json(err.message)}
 })
 //=============================
 app.get("/get/catname/:id",async(req,res)=>{
   try{var data=await post_category.find({_id:req.params.id})
   console.log(data)
   res.status(200).json({name:data[0].post_category_name})
-}catch(err){}
+}catch(err){res.status(400).json(err)}
 
   })
 //=============================
@@ -1050,6 +1057,7 @@ app.get("/get/catname/:id",async(req,res)=>{
 
 //=============================
 app.get("/user/extra/field/:subcategory_id", async (req, res) => {
+  try{
     var formhtml = '';
     const data = await extrafield.find({
         subcategory_id: req.params.subcategory_id
@@ -1148,16 +1156,16 @@ app.get("/user/extra/field/:subcategory_id", async (req, res) => {
 
     }
     res.status(200).send(formhtml)
-
+}catch(err){res.status(400).json(err)}
 })
 
 //=============================
 app.get("/user/plan/:plan_id",async(req,res)=>{
-
+try{
 const data=await packege.find({_id:req.params.plan_id})
 console.log(data)
 res.status(200).json(data)
-
+}catch(err){res.status(400).json(err)}
 })
 //=============================
 app.post("/user/create/ticket",async(req,res)=>{
@@ -1238,7 +1246,7 @@ description: len.toString(),
 amount: total*100,
 order_id:saveddata._id,
 currency: "SRD",
-redirect_url: `http://localhost:3000/mope/redirect/url/${saveddata._id}/${req.body.user_id}`
+redirect_url: `http://52.67.149.51:3000/mope/redirect/url/${saveddata._id}/${req.body.user_id}`
 }
 try{
 var result_data=await axios.post("https://api.mope.sr/api/shop/payment_request",axiosbody,
@@ -1416,23 +1424,30 @@ console.log("purchase_date"+purchase_date)
  })
 
 app.patch("/update/database",async(req,res)=>{
+try{
 const datax=await boost_purchase.find({end_date:{$lte:Date.now()}})
 for (var i = 0; i < datax.length; i++) {
 var data=await post.findByIdAndUpdate(datax[i].post_ids, {post_featured:0})
 
 }
- var updata=await post.find()
- updata.forEach(function(ch)
-{
-post.findByIdAndUpdate({                         ///this is for chenging string to float
-"_id":ch._id},
-{"$set":
-{ post_price:parseInt(ch.post_price)
-}
-});
-});
-res.json(await post.find())
+const datay=await boost_purchase.find({end_date:{$lte:Date.now()}})
+for (var i = 0; i < datay.length; i++) {
+var data=await post.findByIdAndUpdate(datay[i].post_ids, {post_featured:0})
 
+}
+
+                                                      //  var updata=await post.find()
+                                                      //  updata.forEach(function(ch)
+                                                      // {
+                                                      // post.findByIdAndUpdate({                         ///this is for chenging string to float
+                                                      // "_id":ch._id},
+                                                      // {"$set":
+                                                      // { post_price:parseInt(ch.post_price)
+                                                      // }
+                                                      // });
+                                                      // });
+res.json(await post.find())
+}catch(err){res.status(400).json(err.message)}
  })
 
 
@@ -1496,65 +1511,65 @@ try{
 
 //=========================
 app.get("/user/my/packege/:user_id",async(req,res)=>{
-
+try{
 const data=await plan_purchase.find({user_id:req.params.user_id})
 console.log(data)
 res.status(200).json(data)
-
+}catch(err){res.status(400).json(err.message)}
 })
 //=========================
 app.get("/user/get/order_id",async(req,res)=>{
-
+try{
 const data=new mope({order_id:"ord"+Math.floor(Math.random()*1000000)})
 var saveddata=await data.save()//.find({user_id:req.params.user_id})
 
 res.status(200).json({order_id:saveddata._id})
-
+}catch(err){res.status(400).json(err.message)}
 })
 //=========================
 app.get("/user/my/boost/:user_id",async(req,res)=>{
-
+try{
 const data=await boost_purchase.find({user_id:req.params.user_id})
 console.log(data)
 res.status(200).json(data)
-
+}catch(err){res.status(400).json(err.message)}
 })
 
 //=========================
 
 app.get("/user/all/plans",async(req,res)=>{
-
+try{
 const data=await packege.find()
 console.log(data)
 res.status(200).json(data)
-
+}catch(err){res.status(400).json(err.message)}
 })
 //=========================
 
 app.get("/user/all/boost/plans/:subcategory",async(req,res)=>{
-
+try{
 const data=await boost.find({boost_subcategory:req.params.subcategory})
 console.log(data)
 res.status(200).json(data)
-
+}catch(err){res.status(400).json(err.message)}
 })
 //=========================
 
 app.get("/user/all/boost/plans",async(req,res)=>{
 
-const data=await boost.find()
+try{const data=await boost.find()
 console.log(data)
 res.status(200).json(data)
-
+}catch(err){res.status(400).json(err.message)}
 })
 
 //=============================
 app.get("/user/boost/:boost_id",async(req,res)=>{
 
-const data=await boost.find({_id:req.params.boost_id})
+try{const data=await boost.find({_id:req.params.boost_id})
 console.log(data)
 res.status(200).json(data)
-
+}catch(err){res.status(400).json(err.message)}
 })
 
 //==================
@@ -1588,14 +1603,15 @@ if(updated){res.status(200).json({"profile photo updated":updated})
 
 app.get("/user/all/ads",async(req,res)=>{
 
-const data=await post.find()
+try{const data=await post.find()
 console.log(data)
 res.status(200).json(data)
-
+}catch(err){res.status(400).json(err.message)}
 })
 //=========================
 
 app.get("/user/all/ads/:offset",async(req,res)=>{
+  try{
 const fetured=await post.find({post_status:1,post_featured:1}).skip(req.params.offset).limit(10).sort({post_date:"desc"})
 const data=await post.find({post_status:1}).skip(req.params.offset).limit(10).sort({post_date:"desc"})
 console.log("before")
@@ -1605,17 +1621,17 @@ console.log("after")
 
 console.log(data)
 res.status(200).json(data)
-
+}catch(err){res.status(400).json(err.message)}
 })
 
 //=========================
 
 app.get("/admin/all/ads/:offset",async(req,res)=>{
-
+try{
 const data=await post.find().skip(req.params.offset).limit(10).sort({post_date:"desc"})
 console.log(data)
 res.status(200).json(data)
-
+}catch(err){res.status(400).json(err.message)}
 })
 //=========================
 
@@ -1629,7 +1645,7 @@ res.status(200).json(data)
 //=============================
 
 app.get("/user/recommendation/ads",async(req,res)=>{
-
+try{
 const data=await post.find({
   post_location :req.body.location,
   post_subcategory:req.body.subcategory,
@@ -1638,25 +1654,25 @@ const data=await post.find({
 })
 console.log(data)
 res.status(200).json(data)
-
+}catch(err){res.status(400).json(err.message)}
 })
 
 //=========================
 app.get("/user/all/category",async(req,res)=>{
-
+try{
 const data=await post_category.find()
 console.log(data)
 res.status(200).json(data)
-
+}catch(err){res.status(400).json(err.message)}
 })
 
 //=========================
 app.get("/user/all/location",async(req,res)=>{
-
+try{
 const data=await location.find()
 console.log(data)
 res.status(200).json(data)
-
+}catch(err){res.status(400).json(err.message)}
 })
 //=========================
 app.post("/admin/add/location",async(req,res)=>{
@@ -1677,18 +1693,18 @@ try{
 //=======================
 app.get("/user/all/subcategory/:category",async(req,res)=>{
 
-const data=await post_subcategory.find({post_parent_catagory:req.params.category})
+try{const data=await post_subcategory.find({post_parent_catagory:req.params.category})
 console.log(data)
 res.status(200).json(data)
-
+}catch(err){res.status(400).json(err.message)}
 }) 
 //=======================
 app.get("/user/all/subcategory",async(req,res)=>{
 
-const data=await post_subcategory.find()
+try{const data=await post_subcategory.find()
 console.log(data)
 res.status(200).json(data)
-
+}catch(err){res.status(400).json(err.message)}
 }) 
 
 //=========================
@@ -1696,22 +1712,23 @@ res.status(200).json(data)
 app.get("/user/getMyads/:user_id",authenticateUserToken, async(req,res)=>{
 if(req.user.user_id != req.params.user_id) return res.status(403).json({Error:"not the same user loged in"})
 
-const data=await post.find({post_user_id:req.params.user_id}).sort({post_date:"desc"})
+try{const data=await post.find({post_user_id:req.params.user_id}).sort({post_date:"desc"})
 console.log(data)
 res.status(200).json(data)
-
+}catch(err){res.status(400).json(err.message)}
 })
 //==========================
 app.get("/user/ads/bycategory/:category/:offset", async(req,res)=>{
 
-const data=await post.find({post_category:req.params.category}).skip(req.params.offset).limit(10)
+try{const data=await post.find({post_category:req.params.category}).skip(req.params.offset).limit(10)
 console.log(data)
 res.status(200).json(data)
-
+}catch(err){res.status(400).json(err.message)}
 })
 //==========================
 
 app.get("/user/ads/bysubcategory/:subcategory/:offset", async(req,res)=>{
+  try{
 if(req.params.subcategory=="ALL"){
 const data=await post.find({post_status:1}).skip(req.params.offset).limit(10)
 console.log(data)
@@ -1723,19 +1740,19 @@ console.log(data)
 res.status(200).json(data)
 
 }
-
+}catch(err){res.status(400).json(err.message)}
 })
 //==========================
 app.get("/user/ads/bylocation/:location/:offset", async(req,res)=>{
 
-const data=await post.find({post_location :req.params.location}).skip(req.params.offset).limit(10)
+try{const data=await post.find({post_location :req.params.location}).skip(req.params.offset).limit(10)
 console.log(data)
 res.status(200).json(data)
-
+}catch(err){res.status(400).json(err.message)}
 })
 //==========================
 app.post("/user/ads/filterbylocation/:offset", async(req,res)=>{
-
+try{
 const data=await post.find({
   post_location :req.body.location,
   post_subcategory:req.body.subcategory,
@@ -1743,12 +1760,12 @@ const data=await post.find({
 }).skip(req.params.offset).limit(10)
 console.log(data)
 res.status(200).json(data)
-
+}catch(err){res.status(400).json(err.message)}
 })
 //==========================
 
 app.post("/user/ads/filterbyprice/:offset", async(req,res)=>{
-
+try{
 var query={
   post_location :req.body.location,
   post_subcategory:req.body.subcategory,
@@ -1767,23 +1784,23 @@ console.log(query)
 const data=await post.find(query)//.skip(req.params.offset).limit(10)
 console.log(data)
 res.status(200).json(data)
-
+}catch(err){res.status(400).json(err.message)}
 })
 
 //==========================
 app.post("/user/ads/filterbylocation/category/:offset", async(req,res)=>{
-
+try{
 const data=await post.find({
   post_location :req.body.location,
   post_category:req.body.category}).skip(req.params.offset).limit(10)
 console.log(data)
 res.status(200).json(data)
-
+}catch(err){res.status(400).json(err.message)}
 })
 //==========================
 
 app.post("/user/ads/filterbyprice/category/:offset", async(req,res)=>{
-
+try{
 var query={
   post_location :req.body.location,
   post_category:req.body.category,
@@ -1802,7 +1819,7 @@ console.log(query)
 const data=await post.find(query)//.skip(req.params.offset).limit(10)
 console.log(data)
 res.status(200).json(data)
-
+}catch(err){res.status(400).json(err.message)}
 })
 //==========================
 app.get("/user/add/to/wishlist/:wish_user_id/:wish_product_id",async(req,res)=>{
@@ -1843,26 +1860,26 @@ res.status(200).json({"DELETEed":updated})
 app.get("/user/my/wishlist/:user_id",async(req,res)=>{
 //if(req.user.user_id != req.params.user_id) return res.status(403).json({Error:"not the same user loged in"})
 
-
+try{
 const data=await wishlist.find({wish_user_id:req.params.user_id})
 console.log(data)
 res.status(200).json(data)
-
+}catch(err){res.status(400).json(err.message)}
 })
 //===========================
 app.get("/user/is/in/wishlist/:wish_user_id/:wish_product_id",async(req,res)=>{
 //if(req.user.user_id != req.params.user_id) return res.status(403).json({Error:"not the same user loged in"})
 
-
+try{
 const data=await wishlist.find({wish_user_id:req.params.wish_user_id,wish_product_id:req.params.wish_product_id})
 console.log(data)
 res.status(200).json(data)
-
+}catch(err){res.status(400).json(err.message)}
 })
 //===========================
 
 app.get("/user/is/pro/:user_id", async(req,res)=>{
-
+try{
 const data=await plan_purchase.find({
   user_id :req.params.user_id,
   post_available:{$gt: 0},
@@ -1871,7 +1888,7 @@ const data=await plan_purchase.find({
 })
 console.log(data)
 res.status(200).json(data)
-
+}catch(err){res.status(400).json(err.message)}
 })
 
 
@@ -1885,6 +1902,8 @@ res.status(200).json(data)
 //===========================
 app.post("/user/create/new/ad" ,async(req,res)=>{
 //if(req.user.user_id != req.body.post_user_id) return res.status(403).json({Error:"not the same user loged in"})
+
+try{
 const data=await plan_purchase.find({
   user_id :req.body.post_user_id,
   post_available:{$gt: 0},
@@ -1963,20 +1982,22 @@ return res.status(200).json({"post uploaded":saved_data})
  return res.status(400).json({error:err.message})
 }
 
+}catch(err){res.status(400).json(err.message)}
 })
 
 //========================
 app.get("/user/search/product/title/:title",async (req,res)=>{
+try{
 const data=await post.find({post_title: new RegExp(req.params.title,'i')})
 
 res.status(200).json(data)
-
+}catch(err){res.status(400).json(err.message)}
 })
 //=======================
 
 app.post("/user/write/review" ,async(req,res)=>{
 //if(req.user.user_id != req.body.user_id) return res.status(403).json({Error:"not the same user loged in"})
-
+try{
 const dataToBeUploaded=new reviews(req.body)
 try{
   const saved_data=await dataToBeUploaded.save()
@@ -1984,22 +2005,23 @@ try{
 }catch(err){
   res.status(400).json({error:err.message})
 }
-
+}catch(err){res.status(400).json(err.message)}
 
 })
 //=======================
 
 app.get("/user/read/review/:post_id",async (req,res)=>{
+  try{
 const data=await reviews.find({post_id: req.params.post_id})
 
 res.status(200).json(data)
-
+}catch(err){res.status(400).json(err.message)}
 })
 
 //=======================
 
 app.post("/user/related/ads", async(req,res)=>{
-
+try{
 const data=await post.find({
   
   post_subcategory:req.body.subcategory,
@@ -2007,7 +2029,7 @@ const data=await post.find({
 })
 console.log(data)
 res.status(200).json(data)
-
+}catch(err){res.status(400).json(err.message)}
 })
 
 //======================
@@ -2063,24 +2085,26 @@ try{
 //======================
 app.post("/user/getmessage/:sender_id" ,async (req,res)=>{
 //if(req.user.user_id != req.body.post_user_id) return res.status(403).json({Error:"not the same user loged in"})
+try{
 const data=await message.find({sender_id: req.params.sender_id,reciver_id:req.body.reciver_id}).limit(1).sort({ time: 'desc' })
 
 res.status(200).json(data)
-
+}catch(err){res.status(400).json(err.message)}
 })
 
 //======================
 app.get("/user/getsenderlist/:reciver_id" ,async (req,res)=>{
 //if(req.user.user_id != req.body.post_user_id) return res.status(403).json({Error:"not the same user loged in"})
-const data=await message.find({reciver_id:req.params.reciver_id}).distinct('sender_id')
+
+try{const data=await message.find({reciver_id:req.params.reciver_id}).distinct('sender_id')
 console.log(data)
 res.status(200).json(data)
-
+}catch(err){res.status(400).json(err.message)}
 })
 //======================
 app.get("/admin/getsenderlist" ,async (req,res)=>{
 //if(req.user.user_id != req.body.post_user_id) return res.status(403).json({Error:"not the same user loged in"})
-const data=await message.find().distinct('sender_id')
+try{const data=await message.find().distinct('sender_id')
 var x={}
 for (var i = 0; i < data.length; i++) {
   x[data[i]]=await message.find({sender_id:data[i]}).distinct('reciver_id')
@@ -2088,11 +2112,12 @@ for (var i = 0; i < data.length; i++) {
 
 
 res.status(200).json(x)
-
+}catch(err){res.status(400).json(err.message)}
 })
 //======================
 app.get("/user/getallmessage/:sender_id/:reciver_id" ,async (req,res)=>{
 //if(req.user.user_id != req.body.post_user_id) return res.status(403).json({Error:"not the same user loged in"})
+try{
 const data1=await message.find({sender_id: req.params.sender_id,reciver_id:req.params.reciver_id})
 const data2=await message.find({sender_id: req.params.reciver_id,reciver_id:req.params.sender_id})
 
@@ -2102,17 +2127,18 @@ const sortedDesc = data.sort(
 );
 console.log(sortedDesc)
 res.status(200).json(sortedDesc)
-
+}catch(err){res.status(400).json(err.message)}
 })
 
 
 //========================
 app.get("/user/get/notice/:user_id" ,async (req,res)=>{
 //if(req.user.user_id != req.body.post_user_id) return res.status(403).json({Error:"not the same user loged in"})
+try{
 const poststatus=await post.find({post_user_id: req.params.user_id}).limit(20).sort({post_date:"desc"})
 
 res.status(200).json(poststatus)
-
+}catch(err){res.status(400).json(err.message)}
 })
 
 
