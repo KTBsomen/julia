@@ -3,9 +3,10 @@ const mongoose = require('mongoose');
 const bodyparser = require('body-parser');
 const jwt = require('jsonwebtoken');
 const cors= require("cors");
-const axios = require('axios').default;
+const axios = require('axios');
 require("dotenv").config();
 const app = express();
+const nodemailer = require('nodemailer');
 app.use(bodyparser.json());
 app.use(cors());
 //---------MIDDLEWARE
@@ -28,6 +29,34 @@ const Form2JSON = (form) => {
     return result;
   }, {});
 };
+
+//===================
+
+function arraysum(arr) {
+  if(!Array.isArray(arr)) return;
+  let totalNumber = 0;
+  for (let i=0,l=arr.length; i<l; i++) {
+     totalNumber+=arr[i];
+  }
+  return totalNumber;
+}
+
+//=============================
+
+
+
+
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: 'dc.somen2022@gmail.com',
+    pass: 'crtjykislfvhsmjc'
+  }
+});
+
+
+
+
 
 
 //---------------------
@@ -86,7 +115,7 @@ console.log(token)
 authenticateOparetorToken=()=>{}
 //========DATABASECONNECT====
 
-mongoose.connect(process.env.DB_URL,{useNewUrlParser: true, useUnifiedTopology: true},(err,res)=>{console.log(err+"________"+res)});
+mongoose.connect(process.env.DB_URL,{useNewUrlParser: true, useUnifiedTopology: true},(err,res)=>{console.log(err+"____"+res)});
 
 //===========================
 
@@ -96,7 +125,7 @@ const usersSH = mongoose.Schema(
 user_phone:{type:String},
 user_email:String,
 password:{type:String,required:true,min:6},
-user_status:{type:Number,default:1},
+user_status:{type:Number,default:0},
 post_available:{type:Number,default:3}
 })
 
@@ -117,7 +146,6 @@ user_about:{type:String,required:true},
 user_state:{type:String},
 user_image:{type:String,default:"https://api.minimalavatars.com/avatar/random/png"},
 user_city:{type:String,required:true},
-user_pin:{type:String},
 user_address1:{type:String,required:true},
 user_address2:{type:String}
 
@@ -151,7 +179,7 @@ boost_id:{type:String},
 post_title:{type:String,required:true},
 post_image:[{type: String,required:true}],
 post_sold:{type:String,default:0},
-post_price:{type:String,required:true},
+post_price:{type:Number,required:true},
 post_description:{type:String,required:true},
 auth_name:{type:String,required:true},
 
@@ -167,8 +195,8 @@ time:{type:Date,default:Date.now},
 
 const packegeSH = mongoose.Schema(
 {
-boost_category:{type:String,required:true},
-boost_subcategory:{type:String,required:true},
+boost_category:{type:String,default:""},
+boost_subcategory:{type:String,default:""},
 plan_name:{type:String,required:true},
 duration:{type:Number,required:true},
 disprice:{type:String,required:true},
@@ -197,12 +225,10 @@ const fieldsSH = mongoose.Schema(
 const boostSH = mongoose.Schema(
 {
 
-
-boost_category:{type:String,required:true},
 boost_subcategory:{type:String,required:true},
 boost_title:{type:String,required:true},
-boost_regprice:{type:String,required:true},
-boost_discprice:{type:String,required:true},
+boost_regprice:{type:Number,required:true},
+boost_discprice:{type:Number,required:true},
 boost_duration:{type:Number,required:true},
 boost_activecount:{type:Number},
 
@@ -273,13 +299,18 @@ const extrafieldSH = mongoose.Schema(
   subcategory_id :{type:String,required:true},
   schema:{type:Object,required:true},
   })
-
+const ticketschema=mongoose.Schema({
+  user_id:{type:String,required:true},
+  message:{type:String,required:true},
+  createdAt:{type:Date,required:true,default:Date.now},
+  status:{type:Number,default:0}
+})
 
 //===========DATABASEMODEL===
-//const Ticket=mongoose.model("Ticket",ticketschema);
+const ticket=mongoose.model("Ticket",ticketschema);
 const message=mongoose.model("message",messageSH);
-const field_info=mongoose.model("field_info",messageSH);
-const fields=mongoose.model("fields",messageSH);
+const field_info=mongoose.model("field_info",field_infoSH);
+const fields=mongoose.model("fields",fieldsSH);
 const boost=mongoose.model("boost",boostSH);
 const location=mongoose.model("location",locationSH);
 const post=mongoose.model("post",postSH);
@@ -300,7 +331,20 @@ const mope=mongoose.model("mope",mopeSH);
 //const nMessage=mongoose.model("nMessage",normalMessage);
 //===========================
 
+const contacts = require("./routs/contact_us");
+app.use('/contacts', contacts);
 
+// privacypolicy
+const privacy = require("./routs/privacy");
+app.use('/privacy', privacy);
+
+// faq category
+const faq_category = require("./routs/faq_category");
+app.use('/faq_category', faq_category);
+
+// faq 
+const faq = require("./routs/faq");
+app.use('/faq', faq);
 //========================
 
 app.get("/user/getprofile/phone/:phonenumber",async (req,res)=>{
@@ -314,29 +358,168 @@ catch(err){
 }
 })
 
-//==============
-app.get("/user/getprofile/email/:email/:password",async (req,res)=>{
+//===================================ADMINLOGONTREGISTER==============
+//========================
+
+app.get("/admin/getprofile/0/email/:email/:name",async (req,res)=>{
 try{
-const data=await users.find({user_email:req.params.email}).limit(1)
-if(typeof data[0] !="undefined"){
-  if(data[0].password!=req.params.password){return res.status(400).json({error:"password not matched..."})}
- return res.status(200).json({user_id:data[0]._id,token:"Bearer "+generateUserAccessToken({user_id:data[0]._id})})
-}
-else{
-  console.log("this block is runnning")
-  const dataToBeUploaded=new users({user_email:req.params.email,password:req.params.password})
-      try{
-      const saved_data=await dataToBeUploaded.save()
-         return res.status(200).json({user_id:saved_data._id,token:"Bearer "+generateUserAccessToken({user_id:saved_data. _id})})
-      }catch(err){
-         res.status(400).json({error:err.message})
+
+      const data=await admin.find({admin_email:req.params.email}).limit(1)
+
+
+       var otp=Math.floor(Math.random()*1000000)
+
+
+    try{
+      if(typeof data[0]=="undefined"){
+        const dataToBeUploaded=new admin({admin_name:req.params.name,admin_email:req.params.email,admin_password:otp})
+        const saved_data=await dataToBeUploaded.save()
+      }
+      else{
+          const sdata=await admin.findByIdAndUpdate(data[0]._id,{admin_password:otp})
       }
 
-}}catch(err){ res.status(400).json({error:err.message})}
+      var mailOptions = {
+        from: 'dc.somen2022@gmail.com',
+        to: req.params.email,
+        subject: `use this ${otp} to login to julia...`,
+        text: 'That was easy!'
+      };
+
+      transporter.sendMail(mailOptions, function(error, info){
+        if (error) {
+          console.log(error);
+        } else {
+          console.log('Email sent: ' + info.response);
+          return res.status(201).json({"Email sent":true})
+        }
+      }); 
+
+
+        
+
+       return res.status(200).json({"Email sent":true})
+      }catch(err){}
+
+
+
+
+}catch(err){
+
+
+console.log(err.message)
+
+}
+
+})
+
+
+//==============
+app.get("/admin/getprofile/email/:email/:password",async (req,res)=>{
+try{
+const data=await admin.find({admin_email:req.params.email})
+console.log(data)
+console.log(`${data[0].admin_password}  !=  ${req.params.password}`)
+  if(data[0].admin_password!=req.params.password){return res.status(400).json({error:"otp not matched..."})}
+    else{
+ return res.status(200).json({admin_id:data[0]._id,token:"Bearer "+generateAdminAccessToken({user_id:data[0]._id})})
+await admin.findByIdAndUpdate(data[0]._id,{admin_status:1,admin_password:''})
+}
+
+}
+catch(err){ res.status(400).json({error:err.message})}
 
 
 })
-//================
+//================ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//======================================USERLOGINREGISTER==============
+
+app.get("/user/getprofile/email/:email",async (req,res)=>{
+try{
+
+      const data=await users.find({user_email:req.params.email}).limit(1)
+
+
+       var otp=Math.floor(Math.random()*1000000)
+
+
+    try{
+      if(typeof data[0]=="undefined"){
+        const dataToBeUploaded=new users({user_email:req.params.email,password:otp})
+        const saved_data=await dataToBeUploaded.save()
+      }
+      else{
+          const sdata=await users.findByIdAndUpdate(data[0]._id,{password:otp})
+      }
+
+      var mailOptions = {
+        from: 'dc.somen2022@gmail.com',
+        to: req.params.email,
+        subject: `use this ${otp} to login to julia...`,
+        text: 'That was easy!'
+      };
+
+      transporter.sendMail(mailOptions, function(error, info){
+        if (error) {
+          console.log(error);
+        } else {
+          console.log('Email sent: ' + info.response);
+          return res.status(201).json({"Email sent":true})
+        }
+      }); 
+
+
+        
+
+       return res.status(200).json({"Email sent":true})
+      }catch(err){}
+
+
+
+
+}catch(err){
+
+
+console.log(err.message)
+
+}
+
+})
+
+
+//==============
+app.get("/user/getprofile/email/:email/:password",async (req,res)=>{
+try{
+const data=await users.find({user_email:req.params.email})
+console.log(data)
+console.log(`${data[0].password}  !=  ${req.params.password}`)
+  if(data[0].password!=req.params.password){return res.status(400).json({error:"otp not matched..."})}
+    else{
+ return res.status(200).json({user_id:data[0]._id,token:"Bearer "+generateUserAccessToken({user_id:data[0]._id})})
+await user.findByIdAndUpdate(data[0]._id,{user_status:1,password:''})
+}
+
+}
+catch(err){ res.status(400).json({error:err.message})}
+
+
+})
+//================ 
 app.post("/user/register",async(req,res)=>{
 
 const dataToBeUploaded=new users(req.body)
@@ -383,6 +566,11 @@ app.get("/adminlogin/:admin_id",(req,res)=>{
 app.post("/user/newprofile/:user_id",authenticateUserToken,async(req,res)=>{
 if(req.user.user_id != req.params.user_id) return res.status(403).json({Error:"not the same user loged in"})
 
+var check=await user_info.find({user_id:req.params.user_id})
+console.log(check)
+if(check.length==0){
+
+req.body["user_id"]=req.params.user_id
 const dataToBeUploaded=new user_info(req.body)
 try{
   const saved_data=await dataToBeUploaded.save()
@@ -390,18 +578,37 @@ try{
 }catch(err){
   res.status(400).json({error:err.message})
 }
+   }else{
+
+try{const saved_data=await user_info.findOneAndUpdate({user_id:req.params.user_id},req.body)
+res.status(200).json(saved_data)
+}catch(err){res.status(400).json(err.message)}
+
+
+   }
+
+
 
 })
 //========================================
 
+app.get("/user/get/profile/:id",async(req,res)=>{
+try{
+var user=await users.find({_id:req.params.id})
+user[0]["password"]=''
+  const data=await user_info.find({user_id:req.params.id})
+res.status(200).json({data:data,user:user})
+}catch(err){res.status(400).json(err.message)}
 
+})
+
+//======================================
 app.post("/admin/new/plan",async(req,res)=>{
 //if(req.user.user_id != req.body.admin_id) return res.status(403).json({Error:"not the same user loged in"})
 //1 day = 1 * 24 * 60 * 60000 = 1 x 24 hours x 60 minutes x 60 seconds x 1000 milliseconds
 
 const dataToBeUploaded=new packege({
-boost_category:req.body.boost_category,
-boost_subcategory:req.body.boost_subcategory,
+
 regprice:req.body.regprice,
 disprice:req.body.disprice,
 plan_name:req.body.plan_name,
@@ -417,15 +624,155 @@ try{
 
 })
 //========================================
+app.post("/admin/post/status/accept/:id",async(req,res)=>{
+const data=await post.findByIdAndUpdate(req.params.id,{post_status:1})
+data["password"]=''
+res.status(200).json(data)
+})
+//========================================
+app.post("/admin/post/status/delete/:id",async(req,res)=>{
+  const data=await post.findByIdAndDelete(req.params.id)
+  res.status(200).json(data)
+  })
+//========================================
+app.post("/admin/delete/location/:id",async(req,res)=>{
+  const data=await location.findByIdAndDelete(req.params.id)
+  res.status(200).json(data)
+  })
 
 
+/////================
+
+//========================================
+app.post("/admin/user/status/accept/:id",async(req,res)=>{
+const data=await users.findByIdAndUpdate(req.params.id,{user_status:1})
+data["password"]=''
+res.status(200).json(data)
+})
+//========================================
+app.post("/admin/user/status/sustemp/:id",async(req,res)=>{
+const data=await users.findByIdAndUpdate(req.params.id,{user_status:3})
+data["password"]=''
+res.status(200).json(data)
+})
+
+//========================================
+app.post("/admin/user/status/pending/:id",async(req,res)=>{
+const data=await users.findByIdAndUpdate(req.params.id,{user_status:0})
+data["password"]=''
+res.status(200).json(data)
+})
+
+//========================================
+app.post("/admin/user/status/delete/:id",async(req,res)=>{
+  const data=await users.findByIdAndDelete(req.params.id)
+  res.status(200).json(data)
+  })
+//========================================
+
+
+app.post("/admin/user/status/reject/:id",async(req,res)=>{
+  const data=await users.findByIdAndUpdate(req.params.id,{user_status:2})
+  data["password"]=''
+  res.status(200).json(data)
+  })
+
+//=====================
+//========================================
+app.post("/admin/admin/status/accept/:id",async(req,res)=>{
+const data=await admin.findByIdAndUpdate(req.params.id,{admin_status:1})
+data["password"]=''
+res.status(200).json(data)
+})
+//========================================
+app.post("/admin/admin/status/sustemp/:id",async(req,res)=>{
+const data=await admin.findByIdAndUpdate(req.params.id,{admin_status:3})
+data["password"]=''
+res.status(200).json(data)
+})
+
+//========================================
+app.post("/admin/admin/status/pending/:id",async(req,res)=>{
+const data=await admin.findByIdAndUpdate(req.params.id,{admin_status:0})
+data["password"]=''
+res.status(200).json(data)
+})
+
+//========================================
+app.post("/admin/admin/status/delete/:id",async(req,res)=>{
+  const data=await admin.findByIdAndDelete(req.params.id)
+  res.status(200).json(data)
+  })
+//========================================
+
+
+app.post("/admin/admin/status/reject/:id",async(req,res)=>{
+  const data=await admin.findByIdAndUpdate(req.params.id,{admin_status:2})
+  data["password"]=''
+  res.status(200).json(data)
+  })
+
+//=====================
+
+  //======================================== /admin/add/field
+app.post("/admin/post/status/reject/:id",async(req,res)=>{
+  const data=await post.findByIdAndUpdate(req.params.id,{post_status:2})
+  res.status(200).json(data)
+  })
+ //======================================== 
+ app.post("/admin/add/field",async(req,res)=>{
+  const datatosave=new fields({post_field_name:req.body.post_field_name})
+  const data=await datatosave.save()
+  res.status(200).json(data)
+  })
+ //======================================== 
+ app.get("/admin/get/fields",async(req,res)=>{
+  
+  const data=await fields.find()
+  res.status(200).json(data)
+  })
+  //======================================== 
+ app.get("/admin/all/users/:offset",async(req,res)=>{
+  
+  const data=await users.find().skip(req.params.offset).limit(10)
+  data
+  res.status(200).json(data)
+  })
+//========================================
+  //======================================== 
+ app.get("/admin/all/admin/:offset",async(req,res)=>{
+  
+  const data=await admin.find().skip(req.params.offset).limit(10)
+  data["admin_password"]=""
+  res.status(200).json(data)
+  })
+//========================================
+
+app.post("/admin/delete/field/:id",async(req,res)=>{
+  const data=await fields.findByIdAndDelete(req.params.id)
+  res.status(200).json(data)
+  })
+
+//========================================
+app.post("/admin/delete/boost/:id",async(req,res)=>{
+  const data=await boost.findByIdAndDelete(req.params.id)
+  res.status(200).json(data)
+  })
+//========================================
+app.post("/admin/delete/packege/:id",async(req,res)=>{
+  const data=await packege.findByIdAndDelete(req.params.id)
+  res.status(200).json(data)
+  })
+
+
+//========================================
 app.post("/admin/new/boost/plan",async(req,res)=>{
 //if(req.user.user_id != req.body.admin_id) return res.status(403).json({Error:"not the same user loged in"})
 //1 day = 1 * 24 * 60 * 60000 = 1 x 24 hours x 60 minutes x 60 seconds x 1000 milliseconds
 
 const dataToBeUploaded=new boost({
 
-boost_category:req.body.boost_category,
+
 boost_subcategory:req.body.boost_subcategory,
 boost_title:req.body.boost_title,
 boost_regprice:req.body.boost_regprice,
@@ -528,10 +875,125 @@ try{
 
 })
 
+//========================================
+ app.get("/admin/dashboard/details",async(req,res)=>{
+  
+  const data=await users.find().count()
+  const ab=await boost_purchase.find().count()
+  const planp=await plan_purchase.find().count()
+  const tp=await post.find().count()
+  const pp=await post.find({post_status:0}).count()
+const test=await plan_purchase.aggregate([
+{ $group: {
+    _id: {plan_ids: "$plan_id", month: {$month: "$purchase_date"},year: { $year : "$purchase_date" }},
+    count: { $sum: 1}
+    
+}},{ "$sort": { "month": -1 } },
 
+])
+
+
+console.log(test)
+let pd={}
+var jan=[0]
+var feb=[0]
+var march=[0]
+var april=[0]
+var may=[0]
+var june=[0]
+var july=[0]
+var aug=[0]
+var sept=[0]
+var oct=[0]
+var nov=[0]
+var dec=[0]
+for (var i = 0; i < test.length; i++) {
+  for (var j = 0; j < test[i]._id.plan_ids.length; j++) {
+ var price=0
+     var x=await packege.find({_id:test[i]._id.plan_ids[j]})
+     
+      
+      if(test[i]._id.month==1 && test[i]._id.year==new Date().getFullYear()){
+      jan.push(x[0].disprice*test[i].count)
+      }
+      else if(test[i]._id.month==2 && test[i]._id.year==new Date().getFullYear()){
+      feb.push(x[0].disprice*test[i].count)
+      }
+      else if(test[i]._id.month==3 && test[i]._id.year==new Date().getFullYear()){
+      march.push(x[0].disprice*test[i].count)
+      }
+      else if(test[i]._id.month==4 && test[i]._id.year==new Date().getFullYear()){
+      april.push(x[0].disprice*test[i].count)
+      }
+      else if(test[i]._id.month==5 && test[i]._id.year==new Date().getFullYear()){
+      may.push(x[0].disprice*test[i].count)
+      }
+     else if(test[i]._id.month==6 && test[i]._id.year==new Date().getFullYear()){
+      june.push(x[0].disprice*test[i].count)
+      }
+
+      else if(test[i]._id.month==7 && test[i]._id.year==new Date().getFullYear()){
+      july.push(x[0].disprice*test[i].count)
+      }
+      else if(test[i]._id.month==8 && test[i]._id.year==new Date().getFullYear()){
+      aug.push(x[0].disprice*test[i].count)
+      }
+      else if(test[i]._id.month==9 && test[i]._id.year==new Date().getFullYear()){
+      sept.push(x[0].disprice*test[i].count)
+      }
+      else if(test[i]._id.month==10 && test[i]._id.year==new Date().getFullYear()){
+      oct.push(x[0].disprice*test[i].count)
+      }
+      else if(test[i]._id.month==11 && test[i]._id.year==new Date().getFullYear()){
+      nov.push(x[0].disprice*test[i].count)
+      }
+      else if(test[i]._id.month==12 && test[i]._id.year==new Date().getFullYear()){
+      dec.push(x[0].disprice*test[i].count)
+      }
+    
+
+
+
+
+
+     console.log(`${price}  ${test[i]._id.plan_ids[j]}------${test[i]._id.month}  ----- ${test[i].count} ----- ${x[0].disprice*test[i].count}`)
+    
+ 
+ }
+
+}
+const dash=[
+arraysum(jan),
+arraysum(feb),
+arraysum(march),
+arraysum(april),
+arraysum(may),
+arraysum(june),
+arraysum(july),
+arraysum(aug),
+arraysum(sept),
+arraysum(oct),
+arraysum(nov),
+arraysum(dec)
+]
+
+
+  res.status(200).json({user:data,activeboost:ab+planp,totalpost:tp,pendingpost:pp,dashboard:dash})
+  })
 
 //========================================
 
+
+app.get("/admin/all/setelments/:offset",async(req,res)=>{
+try{
+  const data=await mope.find().skip(req.params.offset).limit(10)
+  res.status(200).json(data)
+}
+catch(err){res.status(400).status(err.message)}
+
+})
+
+//========================================
 
 app.post("/admin/add/extra/field",async(req,res)=>{
 //if(req.user.user_id != req.body.admin_id) return res.status(403).json({Error:"not the same user loged in"})
@@ -550,35 +1012,73 @@ try{
 }
 
 })
-//=============================
-app.get("/user/extra/field/:subcategory_id",async(req,res)=>{
-var formhtml='';
-const data=await extrafield.find({subcategory_id:req.params.subcategory_id})
-for (var i = data.length - 1; i >= 0; i--) {
-try{
-    if(typeof(data[i].schema)=="object"){
-  
-  console.log(` ${Object.keys(data[i].schema)}`)
-  switch(parseInt(data[i].schema.fieldtype)){
+//============================
+app.get("/admin/extra/field",async(req,res)=>{
+const data=await extrafield.find()
+res.status(200).json(data)
+})
+//========================================
 
-case 5:
-  console.log("date")
-  formhtml+=`<div class="">
+app.post("/admin/delete/extrafield/:id",async(req,res)=>{
+  //if(req.user.user_id != req.body.admin_id) return res.status(403).json({Error:"not the same admin loged in"})
+  
+  try{
+    const saved_data=await extrafield.findByIdAndDelete(req.params.id)
+    res.status(200).json(saved_data)
+  }catch(err){
+    res.status(400).json({error:err.message})
+  }
+  
+  })
+//=============================
+app.get("/get/subcatname/:id",async(req,res)=>{
+try{var data=await post_subcategory.find({_id:req.params.id})
+console.log(data)
+res.status(200).json({name:data[0].post_subcategory_name})}
+catch(err){}
+})
+//=============================
+app.get("/get/catname/:id",async(req,res)=>{
+  try{var data=await post_category.find({_id:req.params.id})
+  console.log(data)
+  res.status(200).json({name:data[0].post_category_name})
+}catch(err){}
+
+  })
+//=============================
+
+
+//=============================
+app.get("/user/extra/field/:subcategory_id", async (req, res) => {
+    var formhtml = '';
+    const data = await extrafield.find({
+        subcategory_id: req.params.subcategory_id
+    })
+    for (var i = data.length - 1; i >= 0; i--) {
+        try {
+            if (typeof (data[i].schema) == "object") {
+
+                console.log(` ${Object.keys(data[i].schema)}`)
+                switch (parseInt(data[i].schema.fieldtype)) {
+
+                    case 5:
+                        console.log("date")
+                        formhtml += `<div class="col-12">
             <label for="" class="form-label"> ${data[i].schema.field} </label>
             <input id="dynamic-${data[i].schema.field}" type="date" name="${data[i].schema.field}" value="" class="form-control" required="" placeholder="voer hier de advertentietitel in">
           </div>`
-  break;
+                        break;
 
-case 4:
-    console.log("dropdown")//onchange="document.getElementById("dynamic-dropdown").value="this.options[this.selectedIndex].value&quot;
-    var arr=data[i].schema.fielddata.replace("[",'').replace("]",'').split(",")
-    var options="";
-    for (var k = arr.length - 1; k >= 0; k--) {
-      options+=`<option value="${arr[k]}">${arr[k]}</option>`
+                    case 4:
+                        console.log("dropdown") //onchange="document.getElementById("dynamic-dropdown").value="this.options[this.selectedIndex].value&quot;
+                        var arr = data[i].schema.fielddata.replace("[", '').replace("]", '').split(",")
+                        var options = "";
+                        for (var k = arr.length - 1; k >= 0; k--) {
+                            options += `<option value="${arr[k]}">${arr[k]}</option>`
 
-    }
-    formhtml+=(`
-    <div class="col-xl-6 col-lg-6 col-md-6 col-12">
+                        }
+                        formhtml += (`
+    <div class="col-12 col-md-6">
    
     <lable class="my-2 "><b>${data[i].schema.field}</b></lable>
      <select name="${data[i].schema.field}" class="form-control" required="" >
@@ -588,20 +1088,18 @@ case 4:
 
     `)
 
+                        break;
 
-  break;
+                    case 3:
+                        console.log("redio")
+                        var arr = data[i].schema.fielddata.replace("[", '').replace("]", '').split(",")
+                        var options = "";
+                        for (var k = arr.length - 1; k >= 0; k--) {
+                            options += `<input type="radio" name="${data[i].schema.field}" class="" required="" value="${arr[k]}"><span style="margin: 0px 15px 0px 5px">${arr[k]}</span>`
 
-
-case 3:
-console.log("redio")
-  var arr=data[i].schema.fielddata.replace("[",'').replace("]",'').split(",")
-    var options="";
-    for (var k = arr.length - 1; k >= 0; k--) {
-      options+=`<input type="radio" name="${data[i].schema.field}" class="" required="" value="${arr[k]}">${arr[k]}&nbsp;&nbsp;`
-
-    }
-    formhtml+=(`
-    <div class="col-xl-6 col-lg-6 col-md-6 col-12">
+                        }
+                        formhtml += (`
+    <div class="col-12">
    
     <lable class="my-2 " style="display: block;"><b>${data[i].schema.field}</b></lable>
      
@@ -610,20 +1108,18 @@ console.log("redio")
           </div>
 
     `)
+                        break;
 
+                    case 2:
+                        console.log("checkbox")
+                        var arr = data[i].schema.fielddata.replace("[", '').replace("]", '').split(",")
+                        var options = "";
+                        for (var k = arr.length - 1; k >= 0; k--) {
+                            options += `<input type="checkbox" name="${data[i].schema.field}" class="" required="" value="${arr[k]}"><span style="margin: 0px 15px 0px 5px">${arr[k]}</span>`
 
-  break;
-
-case 2:
-console.log("checkbox")
-var arr=data[i].schema.fielddata.replace("[",'').replace("]",'').split(",")
-    var options="";
-    for (var k = arr.length - 1; k >= 0; k--) {
-      options+=`<input type="checkbox" name="${data[i].schema.field}" class="" required="" value="${arr[k]}">${arr[k]}&nbsp;&nbsp;`
-
-    }
-    formhtml+=(`
-    <div class="col-xl-6 col-lg-6 col-md-6 col-12">
+                        }
+                        formhtml += (`
+    <div class="col-12">
    
     <lable class="my-2 " style="display: block;"><b>${data[i].schema.field}</b></lable>
      
@@ -632,36 +1128,26 @@ var arr=data[i].schema.fielddata.replace("[",'').replace("]",'').split(",")
           </div>
 
     `)
+                        break;
 
-
-
-  break;
-
-
-case 1:
-console.log("text or number")
-formhtml+=`<div class="">
+                    case 1:
+                        console.log("text or number")
+                        formhtml += `<div class="col-12">
             <label for="" class="form-label"> ${data[i].schema.field} </label>
             <input id="dynamic-${data[i].schema.field}" type="text" name="${data[i].schema.field}" value="" class="form-control" required="" placeholder="voer hier de advertentietitel in">
           </div>`
-  break;
+                        break;
 
+                }
 
+            }
 
+        } catch (err) {
+            console.log(err.message)
+        }
 
-  }
-
-
-      }
-
-
-
-
-}catch(err){console.log(err.message)}
-
-
-}
-res.status(200).send(formhtml)
+    }
+    res.status(200).send(formhtml)
 
 })
 
@@ -673,6 +1159,60 @@ console.log(data)
 res.status(200).json(data)
 
 })
+//=============================
+app.post("/user/create/ticket",async(req,res)=>{
+try{
+  const datatosave=new ticket(req.body)
+  const data=await datatosave.save()
+  res.status(200).json(data)
+}catch(err){
+  res.status(400).json(err.message)
+
+}
+
+})
+
+//============================
+app.get("/user/my/ticket/:id",async(req,res)=>{
+try{
+  
+  const data=await ticket.find({user_id:req.params.id})
+  res.status(200).json(data)
+}catch(err){
+  res.status(400).json(err.message)
+
+}
+
+})
+
+//============================
+app.get("/admin/all/ticket/:offset",async(req,res)=>{
+try{
+  
+  const data=await ticket.find().skip(req.params.offset).limit(10)
+  res.status(200).json(data)
+}catch(err){
+  res.status(400).json(err.message)
+
+}
+
+})
+
+
+//============================
+app.post("/update/status/ticket/:id",async(req,res)=>{
+try{
+  
+  const data=await ticket.findByIdAndUpdate(req.params.id,{status:parseInt(req.body.status)})
+  res.status(200).json(data)
+}catch(err){
+  res.status(400).json(err.message)
+
+}
+
+})
+
+
 //============================
 app.post("/user/build/order/",async(req,res)=>{
 const data=new mope({user_id:req.body.user_id, order_id:"ord"+Math.floor(Math.random()*1000000)})
@@ -717,6 +1257,20 @@ app.post("/user/purchase/packege",async(req,res)=>{
 res.status(403).json("Not here use site to view ")
 
 })
+//=============================
+
+app.get("/admin/get/paymentdetails/:id",async(req,res)=>{
+try{
+var result_data=await axios(`https://api.mope.sr/api/shop/payment_request/${req.params.id}`,
+  {headers:{'Content-Type': 'application/json;charset=UTF-8',
+  "Authorization": "Bearer test_3a98758e3b711e693280a184a57d8efcb304611820d60748b23c20157a"}  })
+
+
+res.status(200).json(result_data.data)
+}catch(err){console.log({error:err.message})}
+
+})
+
 //=============================
 
 app.post("/user/build/boost",async(req,res)=>{
@@ -865,9 +1419,24 @@ app.patch("/update/database",async(req,res)=>{
 const datax=await boost_purchase.find({end_date:{$lte:Date.now()}})
 for (var i = 0; i < datax.length; i++) {
 var data=await post.findByIdAndUpdate(datax[i].post_ids, {post_featured:0})
-res.json(data)
+
 }
-})
+ var updata=await post.find()
+ updata.forEach(function(ch)
+{
+post.findByIdAndUpdate({                         ///this is for chenging string to float
+"_id":ch._id},
+{"$set":
+{ post_price:parseInt(ch.post_price)
+}
+});
+});
+res.json(await post.find())
+
+ })
+
+
+
 
 //=========================
 app.get("/mope/redirect/url/:order_id/:user_id",async(req,res)=>{
@@ -906,7 +1475,7 @@ try{
   const saved_data=await dataToBeUploaded.save()
  res.redirect('https://juliamongo.primeshaun.in/orders.php');
 }catch(err){
- return res.status(400).json({error:err.message})
+ return res.status(400).json({erroris:err.message})
 }
 
 
@@ -920,7 +1489,7 @@ try{
 
 }
 
-}catch(err){res.status(400).json({"error":err.message})}
+}catch(err){res.status(400).json({"erroris3":err.message})}
 })
 
 
@@ -969,6 +1538,16 @@ console.log(data)
 res.status(200).json(data)
 
 })
+//=========================
+
+app.get("/user/all/boost/plans",async(req,res)=>{
+
+const data=await boost.find()
+console.log(data)
+res.status(200).json(data)
+
+})
+
 //=============================
 app.get("/user/boost/:boost_id",async(req,res)=>{
 
@@ -1011,8 +1590,23 @@ res.status(200).json(data)
 //=========================
 
 app.get("/user/all/ads/:offset",async(req,res)=>{
+const fetured=await post.find({post_status:1,post_featured:1}).skip(req.params.offset).limit(10).sort({post_date:"desc"})
+const data=await post.find({post_status:1}).skip(req.params.offset).limit(10).sort({post_date:"desc"})
+console.log("before")
+console.log(data)
+data.splice(0,0,...fetured)
+console.log("after")
 
-const data=await post.find().skip(req.params.offset).limit(10)
+console.log(data)
+res.status(200).json(data)
+
+})
+
+//=========================
+
+app.get("/admin/all/ads/:offset",async(req,res)=>{
+
+const data=await post.find().skip(req.params.offset).limit(10).sort({post_date:"desc"})
 console.log(data)
 res.status(200).json(data)
 
@@ -1096,24 +1690,24 @@ res.status(200).json(data)
 app.get("/user/getMyads/:user_id",authenticateUserToken, async(req,res)=>{
 if(req.user.user_id != req.params.user_id) return res.status(403).json({Error:"not the same user loged in"})
 
-const data=await post.find({post_user_id:req.params.user_id})
+const data=await post.find({post_user_id:req.params.user_id}).sort({post_date:"desc"})
 console.log(data)
 res.status(200).json(data)
 
 })
 //==========================
-app.get("/user/ads/bycategory/:category", async(req,res)=>{
+app.get("/user/ads/bycategory/:category/:offset", async(req,res)=>{
 
-const data=await post.find({post_category:req.params.category})
+const data=await post.find({post_category:req.params.category}).skip(req.params.offset).limit(10)
 console.log(data)
 res.status(200).json(data)
 
 })
 //==========================
 
-app.get("/user/ads/bysubcategory/:subcategory", async(req,res)=>{
+app.get("/user/ads/bysubcategory/:subcategory/:offset", async(req,res)=>{
 
-const data=await post.find({post_subcategory:req.params.subcategory})
+const data=await post.find({post_subcategory:req.params.subcategory}).skip(req.params.offset).limit(10)
 console.log(data)
 res.status(200).json(data)
 
@@ -1127,27 +1721,70 @@ res.status(200).json(data)
 
 })
 //==========================
-app.post("/user/ads/filterbylocation", async(req,res)=>{
+app.post("/user/ads/filterbylocation/:offset", async(req,res)=>{
 
 const data=await post.find({
   post_location :req.body.location,
-  post_category:req.body.category,
-  post_subcategory:req.body.subcategory})
+  post_subcategory:req.body.subcategory}).skip(req.params.offset).limit(10)
 console.log(data)
 res.status(200).json(data)
 
 })
 //==========================
 
-app.post("/user/ads/filterbyprice", async(req,res)=>{
+app.post("/user/ads/filterbyprice/:offset", async(req,res)=>{
+
+var query={
+  post_location :req.body.location,
+  post_subcategory:req.body.subcategory,
+  post_price:{$gte: parseFloat(req.body.minval), $lte: parseFloat(req.body.maxval)}
+
+}
+if(req.body.location=="all"){
+  query={
+  
+  post_subcategory:req.body.subcategory,
+post_price:{$gte: parseInt(req.body.minval), $lte: parseInt(req.body.maxval)}
+}
+
+}
+console.log(query)
+const data=await post.find(query)//.skip(req.params.offset).limit(10)
+console.log(data)
+res.status(200).json(data)
+
+})
+
+//==========================
+app.post("/user/ads/filterbylocation/category/:offset", async(req,res)=>{
 
 const data=await post.find({
   post_location :req.body.location,
-  post_category:req.body.category,
-  post_subcategory:req.body.subcategory,
-  post_price:{$gte: req.body.minval, $lte: req.body.maxval}
+  post_category:req.body.category}).skip(req.params.offset).limit(10)
+console.log(data)
+res.status(200).json(data)
 
 })
+//==========================
+
+app.post("/user/ads/filterbyprice/category/:offset", async(req,res)=>{
+
+var query={
+  post_location :req.body.location,
+  post_category:req.body.category,
+  post_price:{$gte: parseFloat(req.body.minval), $lte: parseFloat(req.body.maxval)}
+
+}
+if(req.body.location=="all"){
+  query={
+  
+  post_category:req.body.category,
+post_price:{$gte: parseInt(req.body.minval), $lte: parseInt(req.body.maxval)}
+}
+
+}
+console.log(query)
+const data=await post.find(query)//.skip(req.params.offset).limit(10)
 console.log(data)
 res.status(200).json(data)
 
@@ -1243,7 +1880,8 @@ const pa=await users.find({
  _id :req.body.post_user_id,
   post_available:{$gt: 0}
 })
-if(data.length && pa.length){return res.status(400).json({"No Post Left":"buy now"})}
+console.log(`data ${data.length} pa len ${pa.length}`)
+if(data.length==0 && pa.length==0){return res.status(400).json({"No Post Left":"buy now"})}
 var fetured=0;
 for (var i = 0; i < data.length; i++) {
 
@@ -1274,7 +1912,7 @@ fields:req.body.fields,
 post_location:req.body.location,
 post_title:req.body.post_title,
 post_image:JSON.parse(req.body.post_image),
-post_price:req.body.post_price,
+post_price:parseFloat(req.body.post_price),
 post_description:req.body.post_description,
 auth_name:req.body.auth_name,
 
@@ -1424,7 +2062,19 @@ console.log(data)
 res.status(200).json(data)
 
 })
+//======================
+app.get("/admin/getsenderlist" ,async (req,res)=>{
+//if(req.user.user_id != req.body.post_user_id) return res.status(403).json({Error:"not the same user loged in"})
+const data=await message.find().distinct('sender_id')
+var x={}
+for (var i = 0; i < data.length; i++) {
+  x[data[i]]=await message.find({sender_id:data[i]}).distinct('reciver_id')
+}
 
+
+res.status(200).json(x)
+
+})
 //======================
 app.get("/user/getallmessage/:sender_id/:reciver_id" ,async (req,res)=>{
 //if(req.user.user_id != req.body.post_user_id) return res.status(403).json({Error:"not the same user loged in"})
@@ -1439,6 +2089,8 @@ console.log(sortedDesc)
 res.status(200).json(sortedDesc)
 
 })
+
+
 
 //======================
 
