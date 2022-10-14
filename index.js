@@ -1564,7 +1564,9 @@ if(req.user.user_id != req.params.user_id) return res.status(403).json({Error:"n
 try{
  const updated=await user_info.findByIdAndUpdate(req.params.user_id, req.body)
 res.status(200).json({"close_ticket_success":updated})
-}catch(err){res.status(405).json({Error:err.message})}
+}catch(err){
+console.log(err.message)
+  res.status(405).json({Error:err.message})}
 
 })
 
@@ -1573,8 +1575,12 @@ res.status(200).json({"close_ticket_success":updated})
 app.post("/user/addprofilepicture/:user_id", authenticateUserToken ,async (req,res)=>{
 if(req.user.user_id != req.params.user_id) return res.status(403).json({Error:"not the same user loged in"})
 try{
- const updated=await user_info.findByIdAndUpdate(req.params.user_id, {user_image:req.body.user_image})
-res.status(200).json({"close_ticket_success":updated})
+ const updated=await user_info.findOneAndUpdate({user_id:req.params.user_id}, {user_image:req.body.user_image})
+if(updated){res.status(200).json({"profile photo updated":updated})
+  }else{
+    console.log(updated)
+    //res.status(405).json("not uploaded")
+  }
 }catch(err){res.status(405).json({Error:err.message})}
 
 })
@@ -1706,16 +1712,23 @@ res.status(200).json(data)
 //==========================
 
 app.get("/user/ads/bysubcategory/:subcategory/:offset", async(req,res)=>{
+if(req.params.subcategory=="ALL"){
+const data=await post.find({post_status:1}).skip(req.params.offset).limit(10)
+console.log(data)
+res.status(200).json(data)
+}else{
 
-const data=await post.find({post_subcategory:req.params.subcategory}).skip(req.params.offset).limit(10)
+const data=await post.find({post_subcategory:req.params.subcategory,post_status:1}).skip(req.params.offset).limit(10)
 console.log(data)
 res.status(200).json(data)
 
+}
+
 })
 //==========================
-app.get("/user/ads/bylocation/:location", async(req,res)=>{
+app.get("/user/ads/bylocation/:location/:offset", async(req,res)=>{
 
-const data=await post.find({post_location :req.params.location})
+const data=await post.find({post_location :req.params.location}).skip(req.params.offset).limit(10)
 console.log(data)
 res.status(200).json(data)
 
@@ -1725,7 +1738,9 @@ app.post("/user/ads/filterbylocation/:offset", async(req,res)=>{
 
 const data=await post.find({
   post_location :req.body.location,
-  post_subcategory:req.body.subcategory}).skip(req.params.offset).limit(10)
+  post_subcategory:req.body.subcategory,
+  post_status:1
+}).skip(req.params.offset).limit(10)
 console.log(data)
 res.status(200).json(data)
 
@@ -2089,6 +2104,18 @@ console.log(sortedDesc)
 res.status(200).json(sortedDesc)
 
 })
+
+
+//========================
+app.get("/user/get/notice/:user_id" ,async (req,res)=>{
+//if(req.user.user_id != req.body.post_user_id) return res.status(403).json({Error:"not the same user loged in"})
+const poststatus=await post.find({post_user_id: req.params.user_id}).limit(20).sort({post_date:"desc"})
+
+res.status(200).json(poststatus)
+
+})
+
+
 
 
 
